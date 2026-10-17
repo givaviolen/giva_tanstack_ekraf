@@ -14,7 +14,7 @@ import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/_auth/login")({
 	head: () => ({
-		meta: [{ title: "Sign in — Ekraf Dashboard" }],
+		meta: [{ title: "Masuk — UKM Danau Toba" }],
 	}),
 	component: LoginPage,
 });
@@ -34,10 +34,10 @@ function LoginPage() {
 		setError("");
 
 		const nextErrors: { email?: string; password?: string } = {};
-		if (!email.trim()) nextErrors.email = "Email is required";
+		if (!email.trim()) nextErrors.email = "Email wajib diisi";
 		else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-			nextErrors.email = "Enter a valid email address";
-		if (!password) nextErrors.password = "Password is required";
+			nextErrors.email = "Format email tidak valid";
+		if (!password) nextErrors.password = "Password wajib diisi";
 		setFieldErrors(nextErrors);
 		if (nextErrors.email || nextErrors.password) return;
 
@@ -49,12 +49,18 @@ function LoginPage() {
 				rememberMe: remember,
 			});
 			if (result.error) {
-				setError(result.error.message || "Invalid email or password");
+				// 429 comes from the Better Auth rate limiter (see src/lib/auth.ts)
+				// and must not be reported as a wrong password.
+				if (result.error.status === 429) {
+					setError("Terlalu banyak percobaan masuk. Coba lagi beberapa saat lagi.");
+				} else {
+					setError(result.error.message || "Email atau password salah.");
+				}
 				return;
 			}
 			await navigate({ to: "/dashboard" });
 		} catch {
-			setError("Something went wrong. Please try again.");
+			setError("Terjadi kesalahan. Silakan coba lagi.");
 		} finally {
 			setLoading(false);
 		}
@@ -63,13 +69,13 @@ function LoginPage() {
 	return (
 		<AuthCard
 			icon={LogIn}
-			title="Welcome back"
-			description="Sign in to manage your products and team."
+			title="Masuk ke akun Anda"
+			description="Kelola produk dan pengguna direktori UKM Danau Toba."
 			footer={
 				<p className="text-muted-foreground text-sm">
-					Don&apos;t have an account?{" "}
+					Belum punya akun?{" "}
 					<Link to="/register" className="text-primary font-semibold hover:underline">
-						Create one
+						Daftar sekarang
 					</Link>
 				</p>
 			}
@@ -93,7 +99,7 @@ function LoginPage() {
 								setEmail(event.target.value);
 								if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: undefined }));
 							}}
-							placeholder="you@example.com"
+							placeholder="admin@example.com"
 							className="pl-9"
 							aria-invalid={Boolean(fieldErrors.email)}
 						/>
@@ -121,7 +127,7 @@ function LoginPage() {
 							type="button"
 							onClick={() => setShowPassword((value) => !value)}
 							className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 transition-colors"
-							aria-label={showPassword ? "Hide password" : "Show password"}
+							aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
 						>
 							{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
 						</button>
@@ -136,20 +142,20 @@ function LoginPage() {
 							onCheckedChange={(checked) => setRemember(checked === true)}
 						/>
 						<Label htmlFor="remember" className="text-muted-foreground font-normal">
-							Remember me
+							Ingat saya
 						</Label>
 					</div>
 					<Link
 						to="/setup"
 						className="text-muted-foreground hover:text-foreground text-xs font-medium transition-colors"
 					>
-						Need an account?
+						Butuh akun? Seed data
 					</Link>
 				</div>
 
 				<Button type="submit" size="lg" className="w-full" disabled={loading}>
 					{loading ? <Spinner /> : <LogIn className="size-4.5" />}
-					{loading ? "Signing in…" : "Sign in"}
+					{loading ? "Memproses…" : "Masuk"}
 				</Button>
 			</form>
 		</AuthCard>

@@ -21,11 +21,11 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		meta: [
 			{ charSet: "utf-8" },
 			{ name: "viewport", content: "width=device-width, initial-scale=1" },
-			{ title: "Ekraf Dashboard" },
+			{ title: "UKM Danau Toba — Direktori & Dashboard" },
 			{
 				name: "description",
 				content:
-					"Secure product and user administration built with TanStack Start and Better Auth.",
+					"Direktori dan dashboard pengelolaan produk UKM kawasan Danau Toba: kain ulos, kopi Lintong, kacang Sihobuk, dan kerajinan lokal.",
 			},
 		],
 		links: [{ rel: "stylesheet", href: appCss }],
@@ -38,12 +38,12 @@ function NotFound() {
 	return (
 		<main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
 			<p className="kicker">404</p>
-			<h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Page not found</h1>
+			<h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Halaman tidak ditemukan</h1>
 			<p className="text-muted-foreground max-w-md text-sm">
-				The page you are looking for doesn&apos;t exist or has been moved.
+				Halaman yang Anda cari tidak tersedia atau sudah dipindahkan.
 			</p>
 			<Button asChild>
-				<Link to="/">Back to home</Link>
+				<Link to="/">Kembali ke beranda</Link>
 			</Button>
 		</main>
 	);
@@ -51,7 +51,7 @@ function NotFound() {
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en" suppressHydrationWarning>
+		<html lang="id" suppressHydrationWarning>
 			<head>
 				{/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, build-time theme bootstrap script with no user input */}
 				<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />

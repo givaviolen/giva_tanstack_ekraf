@@ -1,106 +1,99 @@
 import { Link, createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
-import { CheckCircle2, DatabaseZap, ExternalLink, KeyRound } from "lucide-react";
+import { CheckCircle2, DatabaseZap } from "lucide-react";
 import { useState } from "react";
 
 import { Spinner } from "@/components/common/Spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toUserMessage } from "@/lib/errors";
 import { seedAdmin } from "@/lib/server/auth";
 
 export const Route = createFileRoute("/_public/setup")({
 	head: () => ({
-		meta: [{ title: "Setup — Ekraf Dashboard" }],
+		meta: [{ title: "Setup Data — UKM Danau Toba" }],
 	}),
-	component: Setup,
+	component: SetupPage,
 });
 
-type Status = "idle" | "loading" | "success" | "error";
-
-function Setup() {
-	const seedAdminFn = useServerFn(seedAdmin);
-	const [status, setStatus] = useState<Status>("idle");
+function SetupPage() {
+	const [status, setStatus] = useState<"idle" | "loading" | "done">("idle");
 	const [message, setMessage] = useState("");
+	const [error, setError] = useState("");
 
-	const handleSeed = async () => {
+	async function handleSeed() {
 		setStatus("loading");
 		setMessage("");
+		setError("");
 		try {
-			const result = await seedAdminFn();
-			setStatus("success");
+			const result = await seedAdmin();
 			setMessage(
 				result.alreadySeeded
-					? "An administrator already exists — nothing to do."
-					: "Administrator created and sample products seeded.",
+					? "Data sudah pernah di-seed. Gunakan admin@example.com untuk masuk."
+					: "Berhasil! Akun admin dan produk contoh telah dibuat. Silakan masuk dengan admin@example.com / admin12345.",
 			);
-		} catch (error) {
-			setStatus("error");
-			setMessage(error instanceof Error ? error.message : "Seeding failed");
+			setStatus("done");
+		} catch (caught) {
+			setError(toUserMessage(caught));
+			setStatus("idle");
 		}
-	};
+	}
 
 	return (
-		<main className="page-wrap flex justify-center py-14 sm:py-20">
-			<Card className="w-full max-w-xl">
-				<CardHeader>
-					<span className="bg-primary/10 text-primary mb-1 grid size-11 place-items-center rounded-xl">
-						<DatabaseZap className="size-5" />
+		<div className="page-wrap flex min-h-[70vh] max-w-lg flex-col justify-center py-12">
+			<Card className="border-border/70 shadow-xl shadow-primary/5">
+				<CardHeader className="items-center gap-3 text-center">
+					<span className="bg-primary/10 text-primary grid size-12 place-items-center rounded-2xl">
+						<DatabaseZap className="size-6" />
 					</span>
-					<CardTitle className="text-xl">Seed the admin account</CardTitle>
-					<CardDescription>
-						This app keeps data in memory, so run this once after every restart to create the
-						administrator and a few sample products. Seeding is idempotent.
-					</CardDescription>
-				</CardHeader>
-
-				<CardContent className="space-y-5">
-					<div className="bg-muted/50 rounded-xl border p-4">
-						<p className="text-muted-foreground mb-2 flex items-center gap-2 text-xs font-semibold tracking-wide uppercase">
-							<KeyRound className="size-3.5" />
-							Seed credentials
-						</p>
-						<dl className="grid gap-1 text-sm">
-							<div className="flex items-center justify-between gap-4">
-								<dt className="text-muted-foreground">Email</dt>
-								<dd className="font-mono font-medium">admin@example.com</dd>
-							</div>
-							<div className="flex items-center justify-between gap-4">
-								<dt className="text-muted-foreground">Password</dt>
-								<dd className="font-mono font-medium">admin12345</dd>
-							</div>
-						</dl>
+					<div className="space-y-1.5">
+						<CardTitle className="text-2xl">Setup Data Awal</CardTitle>
+						<CardDescription className="mx-auto max-w-sm text-balance">
+							Aplikasi ini tidak memakai database persisten, jadi jalankan seed satu kali untuk
+							membuat akun admin dan produk contoh kawasan Danau Toba.
+						</CardDescription>
 					</div>
+				</CardHeader>
+				<CardContent className="space-y-5">
+					<ul className="text-muted-foreground space-y-1.5 text-sm">
+						<li>
+							• Akun:{" "}
+							<code className="bg-muted rounded px-1.5 py-0.5 text-xs">admin@example.com</code>
+						</li>
+						<li>
+							• Password: <code className="bg-muted rounded px-1.5 py-0.5 text-xs">admin12345</code>
+						</li>
+						<li>• 6 produk contoh (ulos, kopi Lintong, kacang Sihobuk, ukiran kayu, dll.)</li>
+					</ul>
 
-					<Button onClick={handleSeed} disabled={status === "loading"} className="w-full sm:w-auto">
-						{status === "loading" ? <Spinner /> : <DatabaseZap className="size-4" />}
-						{status === "loading" ? "Seeding…" : "Seed admin account"}
-					</Button>
-
-					{message ? (
-						<Alert variant={status === "error" ? "destructive" : "success"}>
-							{status === "success" ? <CheckCircle2 /> : null}
-							<AlertDescription>{message}</AlertDescription>
+					{error ? (
+						<Alert variant="destructive">
+							<AlertDescription>{error}</AlertDescription>
 						</Alert>
 					) : null}
 
-					{status === "success" ? (
-						<Button asChild variant="outline" className="w-full sm:w-auto">
-							<Link to="/login">
-								Continue to sign in
-								<ExternalLink className="size-4" />
-							</Link>
-						</Button>
+					{message ? (
+						<Alert>
+							<AlertDescription className="flex items-center gap-2">
+								<CheckCircle2 className="size-4 shrink-0" />
+								{message}
+							</AlertDescription>
+						</Alert>
 					) : null}
 
-					<p className="text-muted-foreground text-sm">
-						Already have an account?{" "}
-						<Link to="/login" className="text-primary font-medium hover:underline">
-							Sign in
-						</Link>
-					</p>
+					<div className="flex flex-wrap items-center gap-3">
+						<Button onClick={handleSeed} disabled={status === "loading"}>
+							{status === "loading" ? <Spinner /> : <DatabaseZap className="size-4" />}
+							{status === "loading" ? "Menyiapkan…" : "Seed Data Admin & Produk"}
+						</Button>
+						{status === "done" ? (
+							<Button asChild variant="outline">
+								<Link to="/login">Ke halaman login</Link>
+							</Button>
+						) : null}
+					</div>
 				</CardContent>
 			</Card>
-		</main>
+		</div>
 	);
 }

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import type { Role } from "@/lib/db";
+import { toUserMessage } from "@/lib/errors";
 import { initials } from "@/lib/format";
 import { updateUserRole } from "@/lib/server/users";
 
@@ -32,14 +33,14 @@ export interface RoleUser {
 const ROLES: Array<{ value: Role; label: string; description: string; icon: typeof UserIcon }> = [
 	{
 		value: "user",
-		label: "User",
-		description: "Can view the dashboard and product catalogue.",
+		label: "Pengguna",
+		description: "Dapat melihat ringkasan dan katalog produk.",
 		icon: UserIcon,
 	},
 	{
 		value: "admin",
 		label: "Administrator",
-		description: "Full access including product and user management.",
+		description: "Akses penuh termasuk pengelolaan produk dan pengguna.",
 		icon: ShieldCheck,
 	},
 ];
@@ -79,7 +80,7 @@ export function UserRoleModal({
 			onSaved();
 			onOpenChange(false);
 		} catch (err) {
-			setError(err instanceof Error ? err.message : "Could not update the role");
+			setError(toUserMessage(err, "Role tidak dapat diperbarui."));
 		} finally {
 			setSaving(false);
 		}
@@ -89,16 +90,16 @@ export function UserRoleModal({
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-md">
 				<DialogHeader>
-					<DialogTitle>Change role</DialogTitle>
-					<DialogDescription>Assign the permissions this account should have.</DialogDescription>
+					<DialogTitle>Ubah role</DialogTitle>
+					<DialogDescription>Tentukan izin yang dimiliki akun ini.</DialogDescription>
 				</DialogHeader>
 
-				<div className="flex items-center gap-3 rounded-xl border bg-muted/40 p-3">
+				<div className="bg-muted/40 flex items-center gap-3 rounded-xl border p-3">
 					<Avatar>
 						<AvatarFallback>{initials(user.name, user.email)}</AvatarFallback>
 					</Avatar>
 					<div className="min-w-0">
-						<p className="truncate text-sm font-semibold">{user.name?.trim() || "Unnamed user"}</p>
+						<p className="truncate text-sm font-semibold">{user.name?.trim() || "Tanpa nama"}</p>
 						<p className="text-muted-foreground truncate text-xs">{user.email}</p>
 					</div>
 				</div>
@@ -106,7 +107,8 @@ export function UserRoleModal({
 				{isSelf ? (
 					<Alert variant="warning">
 						<AlertDescription>
-							You cannot change your own role. Ask another administrator to adjust it.
+							Anda tidak dapat mengubah role akun sendiri. Minta administrator lain untuk
+							mengubahnya.
 						</AlertDescription>
 					</Alert>
 				) : null}
@@ -162,14 +164,14 @@ export function UserRoleModal({
 
 				<DialogFooter>
 					<Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-						Cancel
+						Batal
 					</Button>
 					<Button
 						onClick={() => void handleSave()}
 						disabled={saving || Boolean(isSelf) || role === user.role}
 					>
 						{saving ? <Spinner /> : null}
-						Save role
+						Simpan role
 					</Button>
 				</DialogFooter>
 			</DialogContent>

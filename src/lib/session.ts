@@ -2,6 +2,7 @@ import { getRequest } from "@tanstack/react-start/server";
 
 import { auth } from "./auth";
 import { type Role, getUserRole } from "./db";
+import { forbidden, unauthorized } from "./errors";
 
 /**
  * Read the current better-auth session from the incoming request.
@@ -21,25 +22,27 @@ export async function getCurrentSession() {
 	};
 }
 
+/**
+ * Authorization guard for read endpoints. Re-reads the session on the server —
+ * the client can never be trusted to assert who it is.
+ */
 export async function requireAuth() {
 	const { session, user } = await getCurrentSession();
 	if (!session || !user) {
-		const err = new Error("Unauthorized") as Error & { status?: number };
-		err.status = 401;
-		throw err;
+		throw unauthorized();
 	}
 	return { session, user };
 }
 
+/**
+ * Authorization guard for privileged mutations. Combines authentication with a
+ * server-side role lookup so a tampered client cannot escalate itself.
+ */
 export async function requireAdmin() {
 	const { user } = await requireAuth();
 	const role: Role = getUserRole(user.id);
 	if (role !== "admin") {
-		const err = new Error("Forbidden: admin required") as Error & {
-			status?: number;
-		};
-		err.status = 403;
-		throw err;
+		throw forbidden();
 	}
 	return { user };
 }

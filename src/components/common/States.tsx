@@ -95,7 +95,7 @@ export function ErrorState({
 			{onRetry ? (
 				<Button variant="outline" size="sm" onClick={onRetry}>
 					<RefreshCw className="size-4" />
-					Try again
+					Coba lagi
 				</Button>
 			) : null}
 		</div>

@@ -1,5 +1,6 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import {
+	ExternalLink,
 	LayoutDashboard,
 	LogOut,
 	type LucideIcon,
@@ -46,15 +47,15 @@ interface NavItemConfig {
 }
 
 const NAV_ITEMS: NavItemConfig[] = [
-	{ to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-	{ to: "/products", label: "Products", icon: Package },
-	{ to: "/users", label: "Users", icon: Users, adminOnly: true },
+	{ to: "/dashboard", label: "Ringkasan", icon: LayoutDashboard },
+	{ to: "/products", label: "Produk", icon: Package },
+	{ to: "/users", label: "Pengguna", icon: Users, adminOnly: true },
 ];
 
 const PAGE_META: Record<string, { title: string; subtitle: string }> = {
-	"/dashboard": { title: "Dashboard", subtitle: "A snapshot of your workspace" },
-	"/products": { title: "Products", subtitle: "Create, edit and organise your catalogue" },
-	"/users": { title: "Users", subtitle: "Manage accounts and roles" },
+	"/dashboard": { title: "Ringkasan", subtitle: "Gambaran singkat katalog UKM Anda" },
+	"/products": { title: "Produk", subtitle: "Kelola katalog produk UKM Danau Toba" },
+	"/users": { title: "Pengguna", subtitle: "Kelola akun dan role akses" },
 };
 
 function metaFor(pathname: string) {
@@ -70,7 +71,7 @@ function useSidebarCollapsed() {
 
 	useEffect(() => {
 		try {
-			setCollapsed(window.localStorage.getItem("ekraf:sidebar") === "collapsed");
+			setCollapsed(window.localStorage.getItem("toba:sidebar") === "collapsed");
 		} catch {
 			// ignore
 		}
@@ -80,7 +81,7 @@ function useSidebarCollapsed() {
 		setCollapsed((previous) => {
 			const next = !previous;
 			try {
-				window.localStorage.setItem("ekraf:sidebar", next ? "collapsed" : "expanded");
+				window.localStorage.setItem("toba:sidebar", next ? "collapsed" : "expanded");
 			} catch {
 				// ignore
 			}
@@ -130,6 +131,19 @@ function NavList({
 					</Link>
 				);
 			})}
+
+			<Link
+				to="/produk"
+				onClick={onNavigate}
+				title={collapsed ? "Direktori publik" : undefined}
+				className={cn(
+					"text-muted-foreground hover:bg-accent hover:text-accent-foreground mt-1 flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium no-underline outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50",
+					collapsed && "justify-center px-0",
+				)}
+			>
+				<ExternalLink className="size-4.5 shrink-0" />
+				{!collapsed ? <span className="truncate">Direktori publik</span> : null}
+			</Link>
 		</nav>
 	);
 }
@@ -157,14 +171,14 @@ function UserCard({
 			{!collapsed ? (
 				<div className="min-w-0 flex-1">
 					<p className="text-foreground truncate text-sm font-semibold">
-						{viewer.name?.trim() || "Account"}
+						{viewer.name?.trim() || "Akun"}
 					</p>
 					<p className="text-muted-foreground truncate text-xs">{viewer.email}</p>
 				</div>
 			) : null}
 			{!collapsed ? (
 				<Badge variant={role === "admin" ? "default" : "secondary"} className="capitalize">
-					{role}
+					{role === "admin" ? "admin" : "pengguna"}
 				</Badge>
 			) : null}
 		</div>
@@ -199,7 +213,7 @@ function SidebarBody({
 						size="icon-sm"
 						className="text-muted-foreground hover:text-foreground"
 						onClick={onCollapseToggle}
-						aria-label="Collapse sidebar"
+						aria-label="Tutup sidebar"
 					>
 						<PanelLeftClose className="size-4" />
 					</Button>
@@ -213,7 +227,7 @@ function SidebarBody({
 						size="icon-sm"
 						className="text-muted-foreground hover:text-foreground"
 						onClick={onCollapseToggle}
-						aria-label="Expand sidebar"
+						aria-label="Buka sidebar"
 					>
 						<PanelLeftOpen className="size-4" />
 					</Button>
@@ -264,7 +278,7 @@ export function DashboardShell({
 			{/* Mobile drawer */}
 			<Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
 				<SheetContent side="left" showCloseButton={false} className="bg-sidebar w-[17rem] p-0">
-					<SheetTitle className="sr-only">Navigation</SheetTitle>
+					<SheetTitle className="sr-only">Navigasi</SheetTitle>
 					<SidebarBody
 						collapsed={false}
 						role={role}
@@ -287,7 +301,7 @@ export function DashboardShell({
 							size="icon"
 							className="lg:hidden"
 							onClick={() => setMobileOpen(true)}
-							aria-label="Open navigation"
+							aria-label="Buka navigasi"
 						>
 							<Menu className="size-5" />
 						</Button>
@@ -307,22 +321,22 @@ export function DashboardShell({
 							<DropdownMenuTrigger asChild>
 								<button
 									type="button"
-									className="hover:bg-accent flex items-center gap-2 rounded-full p-1 pr-2 outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/50"
-									aria-label="Account menu"
+									className="hover:bg-accent focus-visible:ring-ring/50 flex items-center gap-2 rounded-full p-1 pr-2 outline-none transition-colors focus-visible:ring-2"
+									aria-label="Menu akun"
 								>
 									<Avatar size="sm">
 										{viewer.image ? <AvatarImage src={viewer.image} alt="" /> : null}
 										<AvatarFallback>{initials(viewer.name, viewer.email)}</AvatarFallback>
 									</Avatar>
 									<span className="hidden text-sm font-medium sm:inline">
-										{viewer.name?.trim() || "Account"}
+										{viewer.name?.trim() || "Akun"}
 									</span>
 								</button>
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="w-60">
 								<DropdownMenuLabel className="flex flex-col gap-0.5">
 									<span className="truncate text-sm font-semibold">
-										{viewer.name?.trim() || "Account"}
+										{viewer.name?.trim() || "Akun"}
 									</span>
 									<span className="text-muted-foreground truncate text-xs font-normal">
 										{viewer.email}
@@ -332,21 +346,27 @@ export function DashboardShell({
 								<DropdownMenuItem asChild>
 									<Link to="/dashboard" className="cursor-pointer">
 										<LayoutDashboard className="size-4" />
-										Go to dashboard
+										Ringkasan
 									</Link>
 								</DropdownMenuItem>
 								{role === "admin" ? (
 									<DropdownMenuItem asChild>
 										<Link to="/users" className="cursor-pointer">
 											<Users className="size-4" />
-											Manage users
+											Kelola pengguna
 										</Link>
 									</DropdownMenuItem>
 								) : null}
+								<DropdownMenuItem asChild>
+									<Link to="/produk" className="cursor-pointer">
+										<ExternalLink className="size-4" />
+										Direktori publik
+									</Link>
+								</DropdownMenuItem>
 								<DropdownMenuSeparator />
 								<DropdownMenuItem variant="destructive" onClick={() => void handleSignOut()}>
 									<LogOut className="size-4" />
-									Sign out
+									Keluar
 								</DropdownMenuItem>
 							</DropdownMenuContent>
 						</DropdownMenu>

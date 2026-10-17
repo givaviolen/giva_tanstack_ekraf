@@ -18,47 +18,82 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { PRODUCT_CATEGORIES, type ProductCategory } from "@/lib/catalog";
 import type { Product } from "@/lib/db";
-import { downscaleImage } from "@/lib/image";
+import { toUserMessage } from "@/lib/errors";
+import { formatCurrency } from "@/lib/format";
+import { MAX_IMAGE_DATA_URL_LENGTH, downscaleImage } from "@/lib/image";
 import { createProduct, updateProduct } from "@/lib/server/products";
 
 interface ProductFormValues {
 	name: string;
+	umkm: string;
+	category: ProductCategory;
 	description: string;
 	price: string;
 	stock: string;
 	image: string;
 }
 
-type FieldErrors = Record<string, string | undefined>;
+type FieldErrors = Partial<Record<keyof ProductFormValues, string>>;
+
+const DEFAULT_CATEGORY: ProductCategory = "Kain Ulos";
+
+function toFormValues(product?: Product | null): ProductFormValues {
+	return {
+		name: product?.name ?? "",
+		umkm: product?.umkm ?? "",
+		category: (product?.category as ProductCategory | undefined) ?? DEFAULT_CATEGORY,
+		description: product?.description ?? "",
+		price: product ? String(product.price) : "",
+		stock: product ? String(product.stock) : "",
+		image: product?.image ?? "",
+	};
+}
 
 function validate(values: ProductFormValues): FieldErrors {
 	const errors: FieldErrors = {};
+
 	if (!values.name.trim()) {
-		errors.name = "Name is required";
+		errors.name = "Nama produk wajib diisi";
 	} else if (values.name.trim().length > 120) {
-		errors.name = "Name must be 120 characters or fewer";
+		errors.name = "Nama produk maksimal 120 karakter";
+	}
+
+	if (!values.umkm.trim()) {
+		errors.umkm = "Nama UMKM wajib diisi";
+	} else if (values.umkm.trim().length > 120) {
+		errors.umkm = "Nama UMKM maksimal 120 karakter";
 	}
 
 	if (!values.description.trim()) {
-		errors.description = "Description is required";
+		errors.description = "Deskripsi wajib diisi";
 	} else if (values.description.trim().length > 2000) {
-		errors.description = "Description must be 2000 characters or fewer";
+		errors.description = "Deskripsi maksimal 2000 karakter";
 	}
 
 	const price = Number(values.price);
 	if (values.price.trim() === "" || !Number.isFinite(price)) {
-		errors.price = "Enter a valid price";
+		errors.price = "Masukkan harga yang valid";
+	} else if (!Number.isInteger(price)) {
+		errors.price = "Harga harus bilangan bulat (rupiah)";
 	} else if (price < 0) {
-		errors.price = "Price cannot be negative";
+		errors.price = "Harga tidak boleh negatif";
 	}
 
 	const stock = Number(values.stock);
 	if (values.stock.trim() === "" || !Number.isFinite(stock) || !Number.isInteger(stock)) {
-		errors.stock = "Enter a whole number";
+		errors.stock = "Masukkan jumlah stok (bilangan bulat)";
 	} else if (stock < 0) {
-		errors.stock = "Stock cannot be negative";
+		errors.stock = "Stok tidak boleh negatif";
 	}
 
 	return errors;
@@ -83,14 +118,16 @@ function ProductForm({
 	const [imageBusy, setImageBusy] = useState(false);
 	const [urlInput, setUrlInput] = useState("");
 
+	/*
+	 * The form is fully controlled by TanStack Form. `defaultValues` is read
+	 * once per mount, and this component is keyed by product id (see
+	 * `ProductFormModal`), so:
+	 *   - typing updates the store and re-renders only this subtree, and
+	 *   - switching between "new" and an existing product gets a clean form
+	 *     without ever remounting *while* the user types.
+	 */
 	const form = useForm({
-		defaultValues: {
-			name: product?.name ?? "",
-			description: product?.description ?? "",
-			price: product ? String(product.price) : "",
-			stock: product ? String(product.stock) : "",
-			image: product?.image ?? "",
-		} as ProductFormValues,
+		defaultValues: toFormValues(product),
 		onSubmit: async ({ value }) => {
 			setServerError("");
 			const validationErrors = validate(value);
@@ -100,6 +137,8 @@ function ProductForm({
 			try {
 				const payload = {
 					name: value.name.trim(),
+					umkm: value.umkm.trim(),
+					category: value.category,
 					description: value.description.trim(),
 					price: Number(value.price),
 					stock: Number(value.stock),
@@ -113,12 +152,12 @@ function ProductForm({
 				onSaved();
 				onClose();
 			} catch (error) {
-				setServerError(error instanceof Error ? error.message : "Something went wrong");
+				setServerError(toUserMessage(error, "Gagal menyimpan produk."));
 			}
 		},
 	});
 
-	const clearError = (key: string) =>
+	const clearError = (key: keyof ProductFormValues) =>
 		setErrors((previous) => (previous[key] ? { ...previous, [key]: undefined } : previous));
 
 	const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -127,19 +166,23 @@ function ProductForm({
 		if (!file) return;
 		setImageError("");
 		if (!file.type.startsWith("image/")) {
-			setImageError("Please choose an image file (PNG, JPG, WEBP or GIF)");
+			setImageError("Pilih berkas gambar (PNG, JPG, WEBP, atau GIF)");
 			return;
 		}
 		if (file.size > 8 * 1024 * 1024) {
-			setImageError("That image is too large — pick one under 8MB");
+			setImageError("Gambar terlalu besar — pilih berkas di bawah 8MB");
 			return;
 		}
 		setImageBusy(true);
 		try {
 			const dataUrl = await downscaleImage(file);
+			if (dataUrl.length > MAX_IMAGE_DATA_URL_LENGTH) {
+				setImageError("Gambar masih terlalu besar setelah dikompres. Coba gambar lain.");
+				return;
+			}
 			form.setFieldValue("image", dataUrl);
 		} catch (error) {
-			setImageError(error instanceof Error ? error.message : "Could not process that image");
+			setImageError(toUserMessage(error, "Gambar tidak dapat diproses"));
 		} finally {
 			setImageBusy(false);
 		}
@@ -150,7 +193,7 @@ function ProductForm({
 		if (!value) return;
 		setImageError("");
 		if (!/^https?:\/\//i.test(value)) {
-			setImageError("Image URLs must start with http:// or https://");
+			setImageError("Tautan gambar harus diawali http:// atau https://");
 			return;
 		}
 		form.setFieldValue("image", value);
@@ -161,11 +204,11 @@ function ProductForm({
 	return (
 		<>
 			<DialogHeader>
-				<DialogTitle>{product ? "Edit product" : "New product"}</DialogTitle>
+				<DialogTitle>{product ? "Ubah produk" : "Produk baru"}</DialogTitle>
 				<DialogDescription>
 					{product
-						? "Update the details below and save your changes."
-						: "Add a product to your catalogue. Fields marked with * are required."}
+						? "Perbarui detail produk di bawah ini, lalu simpan perubahan."
+						: "Tambahkan produk UKM ke katalog. Kolom bertanda * wajib diisi."}
 				</DialogDescription>
 			</DialogHeader>
 
@@ -176,25 +219,27 @@ function ProductForm({
 					void form.handleSubmit();
 				}}
 				className="space-y-5"
+				noValidate
 			>
 				{serverError ? (
-					<Alert variant="destructive">
+					<Alert variant="destructive" data-testid="product-form-error">
 						<AlertDescription>{serverError}</AlertDescription>
 					</Alert>
 				) : null}
 
 				<form.Field name="name">
 					{(field) => (
-						<Field label="Name" htmlFor={field.name} required error={errors.name}>
+						<Field label="Nama produk" htmlFor={field.name} required error={errors.name}>
 							<Input
 								id={field.name}
+								name={field.name}
 								value={field.state.value}
 								onBlur={field.handleBlur}
 								onChange={(event) => {
 									field.handleChange(event.target.value);
 									clearError("name");
 								}}
-								placeholder="e.g. Starter Kit"
+								placeholder="mis. Ulos Ragidup"
 								aria-invalid={Boolean(errors.name)}
 								autoComplete="off"
 							/>
@@ -202,18 +247,63 @@ function ProductForm({
 					)}
 				</form.Field>
 
+				<div className="grid gap-5 sm:grid-cols-2">
+					<form.Field name="umkm">
+						{(field) => (
+							<Field label="UMKM / pengrajin" htmlFor={field.name} required error={errors.umkm}>
+								<Input
+									id={field.name}
+									name={field.name}
+									value={field.state.value}
+									onBlur={field.handleBlur}
+									onChange={(event) => {
+										field.handleChange(event.target.value);
+										clearError("umkm");
+									}}
+									placeholder="mis. Tenun Sianipar"
+									aria-invalid={Boolean(errors.umkm)}
+									autoComplete="off"
+								/>
+							</Field>
+						)}
+					</form.Field>
+
+					<form.Field name="category">
+						{(field) => (
+							<Field label="Kategori" htmlFor={field.name} required>
+								<Select
+									value={field.state.value}
+									onValueChange={(value) => field.handleChange(value as ProductCategory)}
+								>
+									<SelectTrigger id={field.name} className="w-full" aria-label="Kategori">
+										<SelectValue placeholder="Pilih kategori" />
+									</SelectTrigger>
+									<SelectContent>
+										{PRODUCT_CATEGORIES.map((category) => (
+											<SelectItem key={category} value={category}>
+												{category}
+											</SelectItem>
+										))}
+									</SelectContent>
+								</Select>
+							</Field>
+						)}
+					</form.Field>
+				</div>
+
 				<form.Field name="description">
 					{(field) => (
-						<Field label="Description" htmlFor={field.name} required error={errors.description}>
+						<Field label="Deskripsi" htmlFor={field.name} required error={errors.description}>
 							<Textarea
 								id={field.name}
+								name={field.name}
 								value={field.state.value}
 								onBlur={field.handleBlur}
 								onChange={(event) => {
 									field.handleChange(event.target.value);
 									clearError("description");
 								}}
-								placeholder="What makes this product useful?"
+								placeholder="Ceritakan keunggulan produk ini…"
 								aria-invalid={Boolean(errors.description)}
 								rows={3}
 							/>
@@ -223,32 +313,47 @@ function ProductForm({
 
 				<div className="grid gap-5 sm:grid-cols-2">
 					<form.Field name="price">
-						{(field) => (
-							<Field label="Price (USD)" htmlFor={field.name} required error={errors.price}>
-								<Input
-									id={field.name}
-									type="number"
-									inputMode="decimal"
-									min={0}
-									step="0.01"
-									value={field.state.value}
-									onBlur={field.handleBlur}
-									onChange={(event) => {
-										field.handleChange(event.target.value);
-										clearError("price");
-									}}
-									placeholder="0.00"
-									aria-invalid={Boolean(errors.price)}
-								/>
-							</Field>
-						)}
+						{(field) => {
+							const numeric = Number(field.state.value);
+							return (
+								<Field
+									label="Harga (Rp)"
+									htmlFor={field.name}
+									required
+									error={errors.price}
+									description={
+										field.state.value.trim() !== "" && Number.isFinite(numeric)
+											? formatCurrency(numeric)
+											: "Masukkan harga dalam rupiah, tanpa titik."
+									}
+								>
+									<Input
+										id={field.name}
+										name={field.name}
+										type="number"
+										inputMode="numeric"
+										min={0}
+										step="1"
+										value={field.state.value}
+										onBlur={field.handleBlur}
+										onChange={(event) => {
+											field.handleChange(event.target.value);
+											clearError("price");
+										}}
+										placeholder="1250000"
+										aria-invalid={Boolean(errors.price)}
+									/>
+								</Field>
+							);
+						}}
 					</form.Field>
 
 					<form.Field name="stock">
 						{(field) => (
-							<Field label="Stock" htmlFor={field.name} required error={errors.stock}>
+							<Field label="Stok" htmlFor={field.name} required error={errors.stock}>
 								<Input
 									id={field.name}
+									name={field.name}
 									type="number"
 									inputMode="numeric"
 									min={0}
@@ -268,13 +373,13 @@ function ProductForm({
 				</div>
 
 				<Field
-					label="Product image"
-					description="Optional. Images are resized to a maximum of 512px before saving."
+					label="Gambar produk"
+					description="Opsional. Gambar diperkecil otomatis hingga maksimal 512px sebelum disimpan."
 				>
 					<div className="flex flex-col gap-4 sm:flex-row">
 						<div className="bg-muted border-border relative grid size-32 shrink-0 place-items-center overflow-hidden rounded-xl border">
 							{imageValue ? (
-								<img src={imageValue} alt="Product preview" className="size-full object-cover" />
+								<img src={imageValue} alt="Pratinjau produk" className="size-full object-cover" />
 							) : imageBusy ? (
 								<Loader2 className="text-muted-foreground size-6 animate-spin" />
 							) : (
@@ -292,7 +397,7 @@ function ProductForm({
 									disabled={imageBusy}
 								>
 									{imageBusy ? <Spinner /> : <ImagePlus className="size-4" />}
-									{imageValue ? "Replace" : "Upload"}
+									{imageValue ? "Ganti" : "Unggah"}
 								</Button>
 								{imageValue ? (
 									<Button
@@ -306,7 +411,7 @@ function ProductForm({
 										}}
 									>
 										<Trash2 className="size-4" />
-										Remove
+										Hapus
 									</Button>
 								) : null}
 							</div>
@@ -315,12 +420,13 @@ function ProductForm({
 								<Input
 									value={urlInput}
 									onChange={(event) => setUrlInput(event.target.value)}
-									placeholder="https://example.com/image.jpg"
+									placeholder="https://contoh.com/gambar.jpg"
 									type="url"
 									className="h-9"
+									aria-label="Tautan gambar"
 								/>
 								<Button type="button" variant="secondary" size="sm" onClick={applyUrl}>
-									Use URL
+									Pakai URL
 								</Button>
 							</div>
 
@@ -348,11 +454,11 @@ function ProductForm({
 						onClick={onClose}
 						disabled={form.state.isSubmitting}
 					>
-						Cancel
+						Batal
 					</Button>
 					<Button type="submit" disabled={form.state.isSubmitting || imageBusy}>
 						{form.state.isSubmitting ? <Spinner /> : null}
-						{product ? "Save changes" : "Create product"}
+						{product ? "Simpan perubahan" : "Tambah produk"}
 					</Button>
 				</DialogFooter>
 			</form>
@@ -374,7 +480,17 @@ export function ProductFormModal({
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="max-w-2xl">
-				<ProductForm product={product} onClose={() => onOpenChange(false)} onSaved={onSaved} />
+				{/*
+				 * Keyed so a fresh form instance is created when the dialog opens
+				 * or the target product changes. Keystrokes never change this key,
+				 * so typing can never remount (and therefore reset) the form.
+				 */}
+				<ProductForm
+					key={`${open ? "open" : "closed"}:${product?.id ?? "new"}`}
+					product={product}
+					onClose={() => onOpenChange(false)}
+					onSaved={onSaved}
+				/>
 			</DialogContent>
 		</Dialog>
 	);

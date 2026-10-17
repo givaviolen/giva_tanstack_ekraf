@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..600&family=Plus+Jakarta+Sans:wght@500..800&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin '@tailwindcss/typography';
@@ -6,98 +6,118 @@
 @custom-variant dark (&:is(.dark *));
 
 /*
- * Ekraf Dashboard design tokens.
+ * UKM Danau Toba — design tokens.
  *
- * Palette: deep indigo/violet primary, slate/zinc neutrals, emerald success,
- * rose destructive. Values are expressed in oklch so light and dark themes keep
- * a consistent perceptual contrast ratio (WCAG AA for body text and controls).
+ * Palette drawn from the Lake Toba region:
+ *   • Deep Lake Blue  → primary (the water)
+ *   • Earthy Brown    → accent   (wood carving & Lintong coffee)
+ *   • Ulos Red        → destructive / highlights (traditional Batak cloth)
+ *   • Cool slate + warm sand neutrals
+ *
+ * Values are expressed in oklch so light and dark themes keep a consistent
+ * perceptual contrast ratio (WCAG AA for body text and controls).
  */
 :root {
-	--background: oklch(0.991 0.003 286);
-	--foreground: oklch(0.21 0.021 274);
+	--background: oklch(0.986 0.004 240);
+	--foreground: oklch(0.235 0.032 252);
 	--card: oklch(1 0 0);
-	--card-foreground: oklch(0.21 0.021 274);
+	--card-foreground: oklch(0.235 0.032 252);
 	--popover: oklch(1 0 0);
-	--popover-foreground: oklch(0.21 0.021 274);
-	--primary: oklch(0.514 0.228 277);
-	--primary-foreground: oklch(0.99 0.006 277);
-	--secondary: oklch(0.968 0.008 277);
-	--secondary-foreground: oklch(0.31 0.033 277);
-	--muted: oklch(0.968 0.005 286);
-	--muted-foreground: oklch(0.518 0.021 285);
-	--accent: oklch(0.955 0.024 277);
-	--accent-foreground: oklch(0.34 0.09 277);
-	--destructive: oklch(0.579 0.223 25);
-	--destructive-foreground: oklch(0.99 0.008 25);
-	--success: oklch(0.604 0.15 156);
-	--success-foreground: oklch(0.99 0.01 156);
-	--warning: oklch(0.74 0.155 74);
-	--warning-foreground: oklch(0.26 0.05 74);
-	--border: oklch(0.921 0.007 286);
-	--input: oklch(0.921 0.007 286);
-	--ring: oklch(0.55 0.19 277);
+	--popover-foreground: oklch(0.235 0.032 252);
 
-	--chart-1: oklch(0.514 0.228 277);
-	--chart-2: oklch(0.604 0.15 156);
-	--chart-3: oklch(0.62 0.19 300);
-	--chart-4: oklch(0.74 0.155 74);
-	--chart-5: oklch(0.62 0.2 12);
+	/* Deep Lake Blue */
+	--primary: oklch(0.478 0.118 246);
+	--primary-foreground: oklch(0.99 0.008 246);
+
+	--secondary: oklch(0.955 0.012 240);
+	--secondary-foreground: oklch(0.318 0.038 250);
+	--muted: oklch(0.963 0.008 240);
+	--muted-foreground: oklch(0.514 0.024 250);
+
+	/* Earthy Brown (coffee / carved wood) */
+	--accent: oklch(0.947 0.02 66);
+	--accent-foreground: oklch(0.362 0.068 55);
+
+	/* Ulos Red */
+	--destructive: oklch(0.548 0.194 27);
+	--destructive-foreground: oklch(0.99 0.01 27);
+
+	--success: oklch(0.582 0.128 156);
+	--success-foreground: oklch(0.99 0.012 156);
+	--warning: oklch(0.745 0.148 72);
+	--warning-foreground: oklch(0.262 0.05 72);
+	--border: oklch(0.917 0.008 245);
+	--input: oklch(0.917 0.008 245);
+	--ring: oklch(0.552 0.108 246);
+
+	--chart-1: oklch(0.478 0.118 246);
+	--chart-2: oklch(0.582 0.128 156);
+	--chart-3: oklch(0.545 0.09 62);
+	--chart-4: oklch(0.745 0.148 72);
+	--chart-5: oklch(0.548 0.194 27);
 
 	--radius: 0.75rem;
 
-	--sidebar: oklch(0.994 0.003 286);
-	--sidebar-foreground: oklch(0.31 0.021 274);
-	--sidebar-primary: oklch(0.514 0.228 277);
-	--sidebar-primary-foreground: oklch(0.99 0.006 277);
-	--sidebar-accent: oklch(0.962 0.024 277);
-	--sidebar-accent-foreground: oklch(0.33 0.1 277);
-	--sidebar-border: oklch(0.921 0.007 286);
-	--sidebar-ring: oklch(0.55 0.19 277);
+	--sidebar: oklch(0.993 0.004 240);
+	--sidebar-foreground: oklch(0.318 0.032 252);
+	--sidebar-primary: oklch(0.478 0.118 246);
+	--sidebar-primary-foreground: oklch(0.99 0.008 246);
+	--sidebar-accent: oklch(0.958 0.016 246);
+	--sidebar-accent-foreground: oklch(0.362 0.07 246);
+	--sidebar-border: oklch(0.917 0.008 245);
+	--sidebar-ring: oklch(0.552 0.108 246);
 }
 
 .dark {
-	--background: oklch(0.171 0.019 275);
-	--foreground: oklch(0.973 0.005 275);
-	--card: oklch(0.207 0.021 275);
-	--card-foreground: oklch(0.973 0.005 275);
-	--popover: oklch(0.207 0.021 275);
-	--popover-foreground: oklch(0.973 0.005 275);
-	--primary: oklch(0.673 0.185 277);
-	--primary-foreground: oklch(0.16 0.03 277);
-	--secondary: oklch(0.271 0.021 275);
-	--secondary-foreground: oklch(0.973 0.005 275);
-	--muted: oklch(0.26 0.02 275);
-	--muted-foreground: oklch(0.723 0.019 275);
-	--accent: oklch(0.305 0.055 277);
-	--accent-foreground: oklch(0.94 0.028 277);
-	--destructive: oklch(0.628 0.213 22);
-	--destructive-foreground: oklch(0.98 0.01 22);
-	--success: oklch(0.69 0.15 156);
+	--background: oklch(0.178 0.026 251);
+	--foreground: oklch(0.966 0.008 245);
+	--card: oklch(0.214 0.026 251);
+	--card-foreground: oklch(0.966 0.008 245);
+	--popover: oklch(0.214 0.026 251);
+	--popover-foreground: oklch(0.966 0.008 245);
+
+	--primary: oklch(0.665 0.115 244);
+	--primary-foreground: oklch(0.16 0.032 246);
+
+	--secondary: oklch(0.272 0.024 251);
+	--secondary-foreground: oklch(0.966 0.008 245);
+	--muted: oklch(0.262 0.022 251);
+	--muted-foreground: oklch(0.723 0.02 248);
+
+	--accent: oklch(0.31 0.04 62);
+	--accent-foreground: oklch(0.945 0.03 68);
+
+	--destructive: oklch(0.628 0.192 25);
+	--destructive-foreground: oklch(0.98 0.012 25);
+
+	--success: oklch(0.688 0.132 156);
 	--success-foreground: oklch(0.16 0.03 156);
-	--warning: oklch(0.79 0.15 76);
+	--warning: oklch(0.79 0.142 76);
 	--warning-foreground: oklch(0.2 0.04 76);
-	--border: oklch(0.292 0.019 275);
-	--input: oklch(0.32 0.019 275);
-	--ring: oklch(0.6 0.17 277);
+	--border: oklch(0.298 0.022 251);
+	--input: oklch(0.325 0.022 251);
+	--ring: oklch(0.622 0.112 246);
 
-	--chart-1: oklch(0.673 0.185 277);
-	--chart-2: oklch(0.69 0.15 156);
-	--chart-3: oklch(0.7 0.17 300);
-	--chart-4: oklch(0.79 0.15 76);
-	--chart-5: oklch(0.7 0.19 12);
+	--chart-1: oklch(0.665 0.115 244);
+	--chart-2: oklch(0.688 0.132 156);
+	--chart-3: oklch(0.688 0.086 66);
+	--chart-4: oklch(0.79 0.142 76);
+	--chart-5: oklch(0.628 0.192 25);
 
-	--sidebar: oklch(0.186 0.021 275);
-	--sidebar-foreground: oklch(0.905 0.012 275);
-	--sidebar-primary: oklch(0.673 0.185 277);
-	--sidebar-primary-foreground: oklch(0.16 0.03 277);
-	--sidebar-accent: oklch(0.29 0.055 277);
-	--sidebar-accent-foreground: oklch(0.955 0.022 277);
-	--sidebar-border: oklch(0.272 0.019 275);
-	--sidebar-ring: oklch(0.6 0.17 277);
+	--sidebar: oklch(0.192 0.028 251);
+	--sidebar-foreground: oklch(0.908 0.012 248);
+	--sidebar-primary: oklch(0.665 0.115 244);
+	--sidebar-primary-foreground: oklch(0.16 0.032 246);
+	--sidebar-accent: oklch(0.292 0.038 246);
+	--sidebar-accent-foreground: oklch(0.955 0.016 246);
+	--sidebar-border: oklch(0.278 0.022 251);
+	--sidebar-ring: oklch(0.622 0.112 246);
 }
 
 @theme inline {
 	--font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+	--font-display: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
+
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
@@ -139,6 +159,12 @@
 	--color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
 	--color-sidebar-border: var(--sidebar-border);
 	--color-sidebar-ring: var(--sidebar-ring);
+
+	/* Brand aliases so markup can name the Lake Toba palette directly. */
+	--color-lake: var(--primary);
+	--color-lake-foreground: var(--primary-foreground);
+	--color-earth: var(--accent-foreground);
+	--color-ulos: var(--destructive);
 }
 
 @layer base {
@@ -158,19 +184,25 @@
 		color: var(--foreground);
 		background-color: var(--background);
 		background-image: radial-gradient(
-				52rem 34rem at 100% -8%,
-				color-mix(in oklab, var(--primary) 10%, transparent),
+				56rem 36rem at 100% -10%,
+				color-mix(in oklab, var(--primary) 12%, transparent),
 				transparent 72%
 			),
 			radial-gradient(
-				46rem 30rem at -12% 4%,
-				color-mix(in oklab, var(--primary) 7%, transparent),
+				48rem 32rem at -12% 6%,
+				color-mix(in oklab, var(--destructive) 7%, transparent),
 				transparent 70%
 			);
 		background-attachment: fixed;
 		-webkit-font-smoothing: antialiased;
 		-moz-osx-font-smoothing: grayscale;
 		text-rendering: optimizeLegibility;
+	}
+
+	h1,
+	h2,
+	h3 {
+		font-family: var(--font-display);
 	}
 
 	::selection {
@@ -202,6 +234,17 @@
 		letter-spacing: 0.18em;
 		text-transform: uppercase;
 		color: color-mix(in oklab, var(--primary) 84%, var(--foreground));
+	}
+
+	/* Decorative Ulos-inspired stripe (traditional Batak cloth). */
+	.ulos-stripe {
+		background-image: repeating-linear-gradient(
+			90deg,
+			var(--destructive) 0 10px,
+			var(--card) 10px 14px,
+			var(--foreground) 14px 18px,
+			var(--card) 18px 22px
+		);
 	}
 }
 

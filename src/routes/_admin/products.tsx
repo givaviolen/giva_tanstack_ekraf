@@ -22,6 +22,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@/components/ui/select";
+import {
 	Table,
 	TableBody,
 	TableCell,
@@ -29,13 +36,15 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/components/ui/table";
+import { PRODUCT_CATEGORIES, categoryBadgeClass } from "@/lib/catalog";
 import type { Product } from "@/lib/db";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { toUserMessage } from "@/lib/errors";
+import { formatDate, formatRupiah } from "@/lib/format";
 import { deleteProduct, getProducts } from "@/lib/server/products";
 
 export const Route = createFileRoute("/_admin/products")({
 	head: () => ({
-		meta: [{ title: "Products — Ekraf" }],
+		meta: [{ title: "Produk — UKM Danau Toba" }],
 	}),
 	component: ProductsPage,
 });
@@ -44,9 +53,19 @@ const features = tableFeatures({ rowSortingFeature });
 const columnHelper = createColumnHelper<typeof features, Product>();
 
 function StockBadge({ stock }: { stock: number }) {
-	if (stock <= 0) return <Badge variant="destructive">Out of stock</Badge>;
-	if (stock <= 5) return <Badge variant="warning">Low · {stock}</Badge>;
-	return <Badge variant="secondary">{stock} in stock</Badge>;
+	if (stock <= 0) return <Badge variant="destructive">Stok habis</Badge>;
+	if (stock <= 5) return <Badge variant="warning">Rendah · {stock}</Badge>;
+	return <Badge variant="secondary">{stock} tersedia</Badge>;
+}
+
+function CategoryBadge({ category }: { category: string }) {
+	return (
+		<span
+			className={`rounded-full border px-2 py-0.5 text-xs font-medium ${categoryBadgeClass(category)}`}
+		>
+			{category}
+		</span>
+	);
 }
 
 function ProductsPage() {
@@ -61,6 +80,7 @@ function ProductsPage() {
 	const deleteFn = useServerFn(deleteProduct);
 
 	const [search, setSearch] = useState("");
+	const [category, setCategory] = useState("Semua");
 	const [formOpen, setFormOpen] = useState(false);
 	const [editing, setEditing] = useState<Product | null>(null);
 	const [pendingDelete, setPendingDelete] = useState<Product | null>(null);
@@ -69,13 +89,15 @@ function ProductsPage() {
 
 	const products = productsQuery.data ?? [];
 	const query = search.trim().toLowerCase();
-	const filtered = query
-		? products.filter(
-				(product) =>
-					product.name.toLowerCase().includes(query) ||
-					product.description.toLowerCase().includes(query),
-			)
-		: products;
+	const filtered = products.filter((product) => {
+		const matchesCategory = category === "Semua" || product.category === category;
+		const matchesQuery =
+			query === "" ||
+			product.name.toLowerCase().includes(query) ||
+			product.umkm.toLowerCase().includes(query) ||
+			product.description.toLowerCase().includes(query);
+		return matchesCategory && matchesQuery;
+	});
 
 	const refresh = () => queryClient.invalidateQueries({ queryKey: ["products"] });
 
@@ -98,7 +120,7 @@ function ProductsPage() {
 			await refresh();
 			setPendingDelete(null);
 		} catch (error) {
-			setActionError(error instanceof Error ? error.message : "Could not delete the product");
+			setActionError(toUserMessage(error, "Produk tidak dapat dihapus."));
 		} finally {
 			setDeleting(false);
 		}
@@ -106,7 +128,7 @@ function ProductsPage() {
 
 	const columns = columnHelper.columns([
 		columnHelper.accessor("name", {
-			header: "Product",
+			header: "Produk",
 			cell: (info) => {
 				const product = info.row.original;
 				return (
@@ -120,25 +142,33 @@ function ProductsPage() {
 				);
 			},
 		}),
+		columnHelper.accessor("umkm", {
+			header: "UMKM",
+			cell: (info) => <span className="text-muted-foreground text-sm">{info.getValue()}</span>,
+		}),
+		columnHelper.accessor("category", {
+			header: "Kategori",
+			cell: (info) => <CategoryBadge category={info.getValue()} />,
+		}),
 		columnHelper.accessor("price", {
-			header: "Price",
+			header: "Harga",
 			cell: (info) => (
-				<span className="font-medium tabular-nums">{formatCurrency(Number(info.getValue()))}</span>
+				<span className="font-medium tabular-nums">{formatRupiah(Number(info.getValue()))}</span>
 			),
 		}),
 		columnHelper.accessor("stock", {
-			header: "Stock",
+			header: "Stok",
 			cell: (info) => <StockBadge stock={Number(info.getValue())} />,
 		}),
 		columnHelper.accessor("updatedAt", {
-			header: "Updated",
+			header: "Diperbarui",
 			cell: (info) => (
 				<span className="text-muted-foreground text-xs">{formatDate(String(info.getValue()))}</span>
 			),
 		}),
 		columnHelper.display({
 			id: "actions",
-			header: "Actions",
+			header: "Aksi",
 			cell: (info) => {
 				if (!isAdmin) return null;
 				const product = info.row.original;
@@ -148,7 +178,7 @@ function ProductsPage() {
 							variant="ghost"
 							size="icon-sm"
 							onClick={() => openEdit(product)}
-							aria-label={`Edit ${product.name}`}
+							aria-label={`Ubah ${product.name}`}
 						>
 							<Pencil className="size-4" />
 						</Button>
@@ -160,7 +190,7 @@ function ProductsPage() {
 								setActionError("");
 								setPendingDelete(product);
 							}}
-							aria-label={`Delete ${product.name}`}
+							aria-label={`Hapus ${product.name}`}
 						>
 							<Trash2 className="size-4" />
 						</Button>
@@ -191,46 +221,59 @@ function ProductsPage() {
 				{/* Toolbar */}
 				<div className="flex flex-col gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
 					<div className="min-w-0">
-						<h2 className="text-base font-semibold tracking-tight">Catalogue</h2>
+						<h2 className="text-base font-semibold tracking-tight">Katalog produk</h2>
 						<p className="text-muted-foreground text-xs">
 							{productsQuery.isPending
-								? "Loading products…"
-								: query
-									? `${filtered.length} of ${products.length} product${products.length === 1 ? "" : "s"}`
-									: `${products.length} product${products.length === 1 ? "" : "s"} total`}
+								? "Memuat produk…"
+								: query || category !== "Semua"
+									? `${filtered.length} dari ${products.length} produk`
+									: `${products.length} produk`}
 						</p>
 					</div>
 
 					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-						<div className="relative w-full sm:w-64">
+						<div className="relative w-full sm:w-56">
 							<Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
 							<Input
 								value={search}
 								onChange={(event) => setSearch(event.target.value)}
-								placeholder="Search products…"
+								placeholder="Cari produk atau UMKM…"
 								className="h-9 pl-9"
-								aria-label="Search products"
+								aria-label="Cari produk"
 							/>
 						</div>
+						<Select value={category} onValueChange={setCategory}>
+							<SelectTrigger className="h-9 w-full sm:w-40" aria-label="Filter kategori">
+								<SelectValue placeholder="Semua" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="Semua">Semua kategori</SelectItem>
+								{PRODUCT_CATEGORIES.map((item) => (
+									<SelectItem key={item} value={item}>
+										{item}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
 						{isAdmin ? (
 							<Button onClick={openCreate} disabled={productsQuery.isPending}>
 								<Plus className="size-4" />
-								New product
+								Produk baru
 							</Button>
 						) : null}
 					</div>
 				</div>
 
-				{/* Content */}
+				{/* Konten */}
 				{productsQuery.isPending ? (
 					<div className="p-6">
-						<LoadingState rows={5} label="Loading products" />
+						<LoadingState rows={5} label="Memuat produk" />
 					</div>
 				) : productsQuery.isError ? (
 					<div className="p-6">
 						<ErrorState
-							title="We couldn't load your products"
-							description={(productsQuery.error as Error)?.message}
+							title="Produk tidak dapat dimuat"
+							description={toUserMessage(productsQuery.error)}
 							onRetry={() => void productsQuery.refetch()}
 						/>
 					</div>
@@ -238,19 +281,19 @@ function ProductsPage() {
 					<div className="p-6">
 						<EmptyState
 							icon={Package}
-							title={hasProducts ? "No matching products" : "No products yet"}
+							title={hasProducts ? "Tidak ada produk yang cocok" : "Belum ada produk"}
 							description={
 								hasProducts
-									? "Try a different search term to find what you're looking for."
+									? "Coba ubah kata kunci atau pilih kategori lain."
 									: isAdmin
-										? "Add your first product to start building your catalogue."
-										: "There are no products in the catalogue yet."
+										? "Tambahkan produk pertama untuk mulai membangun katalog."
+										: "Belum ada produk di katalog."
 							}
 							action={
 								!hasProducts && isAdmin ? (
 									<Button onClick={openCreate}>
 										<Plus className="size-4" />
-										Add a product
+										Tambah produk
 									</Button>
 								) : null
 							}
@@ -258,7 +301,7 @@ function ProductsPage() {
 					</div>
 				) : (
 					<>
-						{/* Desktop table */}
+						{/* Tabel desktop */}
 						<div className="hidden md:block">
 							<Table>
 								<TableHeader>
@@ -297,52 +340,44 @@ function ProductsPage() {
 							</Table>
 						</div>
 
-						{/* Mobile cards */}
-						<ul className="divide-y md:hidden">
+						{/* Kartu mobile */}
+						<ul className="divide-border divide-y md:hidden">
 							{filtered.map((product) => (
 								<li key={product.id} className="space-y-3 p-4">
 									<div className="flex items-center gap-3">
 										<ProductThumbnail name={product.name} image={product.image} />
 										<div className="min-w-0 flex-1">
 											<p className="truncate text-sm font-semibold">{product.name}</p>
-											<p className="text-muted-foreground line-clamp-2 text-xs">
-												{product.description}
-											</p>
+											<p className="text-muted-foreground truncate text-xs">{product.umkm}</p>
 										</div>
 									</div>
-									<div className="flex flex-wrap items-center justify-between gap-2">
-										<div className="flex items-center gap-2">
-											<span className="text-sm font-semibold tabular-nums">
-												{formatCurrency(product.price)}
-											</span>
-											<StockBadge stock={product.stock} />
-										</div>
-										{isAdmin ? (
-											<div className="flex items-center gap-1">
-												<Button
-													variant="outline"
-													size="sm"
-													onClick={() => openEdit(product)}
-													aria-label={`Edit ${product.name}`}
-												>
-													<Pencil className="size-4" />
-													Edit
-												</Button>
-												<Button
-													variant="ghost"
-													size="icon-sm"
-													className="text-destructive hover:text-destructive"
-													onClick={() => {
-														setActionError("");
-														setPendingDelete(product);
-													}}
-													aria-label={`Delete ${product.name}`}
-												>
-													<Trash2 className="size-4" />
-												</Button>
-											</div>
-										) : null}
+									<div className="flex flex-wrap items-center gap-2">
+										<CategoryBadge category={product.category} />
+										<span className="text-sm font-semibold tabular-nums">
+											{formatRupiah(product.price)}
+										</span>
+										<StockBadge stock={product.stock} />
 									</div>
+									{isAdmin ? (
+										<div className="flex items-center gap-1">
+											<Button variant="outline" size="sm" onClick={() => openEdit(product)}>
+												<Pencil className="size-4" />
+												Ubah
+											</Button>
+											<Button
+												variant="ghost"
+												size="icon-sm"
+												className="text-destructive hover:text-destructive"
+												onClick={() => {
+													setActionError("");
+													setPendingDelete(product);
+												}}
+												aria-label={`Hapus ${product.name}`}
+											>
+												<Trash2 className="size-4" />
+											</Button>
+										</div>
+									) : null}
 								</li>
 							))}
 						</ul>
@@ -362,16 +397,16 @@ function ProductsPage() {
 				onOpenChange={(open) => {
 					if (!open) setPendingDelete(null);
 				}}
-				title="Delete this product?"
+				title="Hapus produk ini?"
 				description={
 					pendingDelete ? (
 						<>
-							<span className="font-medium">{pendingDelete.name}</span> will be permanently removed
-							from your catalogue. This action cannot be undone.
+							<span className="font-medium">{pendingDelete.name}</span> akan dihapus permanen dari
+							katalog. Tindakan ini tidak dapat dibatalkan.
 						</>
 					) : null
 				}
-				confirmLabel="Delete product"
+				confirmLabel="Hapus produk"
 				onConfirm={handleConfirmDelete}
 				loading={deleting}
 			/>

@@ -31,7 +31,7 @@ function AuthLayout() {
 			</div>
 
 			<p className="text-muted-foreground px-4 pb-6 text-center text-xs">
-				&copy; {year} Ekraf Dashboard · Secure admin access
+				&copy; {year} UKM Danau Toba · Akses admin yang aman
 			</p>
 		</div>
 	);

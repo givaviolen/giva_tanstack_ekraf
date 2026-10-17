@@ -1,19 +1,26 @@
+const idr = new Intl.NumberFormat("id-ID", {
+	style: "currency",
+	currency: "IDR",
+	maximumFractionDigits: 0,
+});
+
+/** Format a whole-rupiah amount, e.g. `Rp1.250.000`. */
 export function formatCurrency(value: number) {
-	return new Intl.NumberFormat("en-US", {
-		style: "currency",
-		currency: "USD",
-		maximumFractionDigits: 2,
-	}).format(value);
+	if (!Number.isFinite(value)) return "—";
+	return idr.format(value);
 }
 
+/** Alias kept for readability in the UMKM domain. */
+export const formatRupiah = formatCurrency;
+
 export function formatNumber(value: number) {
-	return new Intl.NumberFormat("en-US").format(value);
+	return new Intl.NumberFormat("id-ID").format(value);
 }
 
 export function formatDate(value: string | Date) {
 	const date = value instanceof Date ? value : new Date(value);
 	if (Number.isNaN(date.getTime())) return "—";
-	return new Intl.DateTimeFormat("en-US", {
+	return new Intl.DateTimeFormat("id-ID", {
 		year: "numeric",
 		month: "short",
 		day: "numeric",
@@ -23,7 +30,7 @@ export function formatDate(value: string | Date) {
 export function formatDateTime(value: string | Date) {
 	const date = value instanceof Date ? value : new Date(value);
 	if (Number.isNaN(date.getTime())) return "—";
-	return new Intl.DateTimeFormat("en-US", {
+	return new Intl.DateTimeFormat("id-ID", {
 		year: "numeric",
 		month: "short",
 		day: "numeric",

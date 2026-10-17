@@ -1,6 +1,6 @@
-# TanStack Ekraf Dashboard
+# Dashboard & Direktori UKM Danau Toba
 
-Secure admin dashboard with login + product CRUD + user CRUD, backed by Better Auth (no persistent DB by design) and targeting Vercel.
+Secure admin dashboard **plus a public product directory** for UMKM (small businesses) around Lake Toba — login, product CRUD, and user/role management backed by Better Auth (no persistent DB by design), targeting Vercel. Indonesian-language UI, Lake Toba / Ulos visual theme, light + dark mode.
 
 ## Exact TanStack CLI command used
 
@@ -67,28 +67,27 @@ On Vercel, add both under **Settings > Environment Variables** for the productio
 
 There is no persistent database. Data lives in memory for the life of the server process (local dev, or a single warmed Vercel serverless instance) and resets on redeploy / cold start.
 
-1. Visit `/setup` and click **Seed Admin Account**.
+1. Visit `/setup` and click **Seed Data Admin & Produk**.
 2. This calls `seedAdmin` (a TanStack Start server function) which:
+   - Is idempotent (returns early once an admin exists) and rate-limited.
    - Creates `admin@example.com` / `admin12345` via `auth.api.signUpEmail` (password hashed by Better Auth) into the memory adapter.
    - Assigns the `admin` role.
-   - Seeds 3 sample products.
-3. Sign in at `/demo/better-auth` with `admin@example.com` / `admin12345`.
-4. Open `/dashboard`, then `/products` or `/users`.
+   - Seeds 6 sample Lake Toba products (ulos, kopi Lintong, kacang Sihobuk, ukiran kayu, tas anyaman, sambal andaliman).
+3. Sign in at `/login` with `admin@example.com` / `admin12345`.
+4. Open `/dashboard`, then `/products` or `/users`. The public directory lives at `/produk`.
 
 ## Routes
 
 | Route | Access | Description |
 |---|---|---|
-| `/` | public | Home; sign-in prompt or dashboard link |
-| `/login` | public | Redirects to `/demo/better-auth` |
-| `/demo/better-auth` | public | Better Auth sign-in / sign-up (scaffold demo) |
-| `/setup` | public | One-time admin + sample data seed (`seedAdmin` server fn) |
-| `/dashboard` | auth | Protected overview (TanStack Query + server fns) |
-| `/products` | auth | Product list (TanStack Table + TanStack Query) |
-| `/products/new` | auth + admin | Create product (TanStack Form) |
-| `/products/$productId` | auth + admin | Edit/delete product (TanStack Form) |
-| `/users` | auth + admin | User list + role management (TanStack Table) |
-| `/users/$userId` | auth + admin | User detail + role change / delete |
+| `/` | public | Landing page: hero, category highlights, featured products (`getPublicProducts`), CTAs |
+| `/produk` | public | Full public directory of UMKM products (sortable table + search + category filter) |
+| `/setup` | public | One-time admin + sample data seed (`seedAdmin` server fn; idempotent + rate-limited) |
+| `/login` | public | Modern centered sign-in card (Indonesian); redirects authenticated users to `/dashboard` |
+| `/register` | public | Better Auth sign-up (Indonesian) |
+| `/dashboard` | auth | Protected overview: metrics, category distribution, recent products (TanStack Query) |
+| `/products` | auth + admin | Product list (TanStack Table); create/edit/delete in shadcn **modal dialogs** (`ProductFormModal`) |
+| `/users` | auth + admin | User list + role management (TanStack Table + `UserRoleModal`) |
 | `/api/auth/$` | public | Better Auth handler (`signIn`, `signUp`, `session`, etc.) |
 
 ## Key architectural decisions
@@ -99,13 +98,31 @@ There is no persistent database. Data lives in memory for the life of the server
 4. **TanStack Start server functions, not raw API routes**, for all writes — `useServerFn` on the client calls typed server functions; Better Auth's `/api/auth/$` route handles auth HTTP endpoints.
 5. **Role gating** — `getUserRole(userId)` reads the `userRole` table; `admin` actions require role `admin`. Deleting the last administrator is blocked to avoid lockout.
 
+## Security enhancements (Task C)
+
+| # | Measure | Where | Attack it prevents |
+|---|---|---|---|
+| 1 | Server-side Zod validation on **every** server function (`safeValidator`) | `src/lib/server/*.ts`, `src/lib/server/guard.ts` | Tampered/oversized payloads bypassing client checks — the client is untrusted, so the server re-validates and re-authorizes. |
+| 2 | `requireAdmin()` on every mutation and privileged reader; `getUsers` is admin-only | `src/lib/session.ts`, `src/lib/server/{products,users}.ts` | Privilege escalation / IDOR — a non-admin cannot create, edit, delete, or enumerate users by calling server functions directly. |
+| 3 | Admin **self-demotion** block + **last-admin** lockout guard (role change & delete) | `src/lib/server/users.ts` | A mistaken or malicious admin removing the final owner and permanently locking the workspace. |
+| 4 | Admin **self-deletion** block + `purgeUser()` cascade | `src/lib/server/users.ts`, `src/lib/db.ts` | Deleted accounts leaving live sessions behind (a stolen/cached cookie staying valid). Purge removes user + sessions + accounts + verifications. |
+| 5 | **Login rate limiting** (Better Auth `rateLimit.customRules`) + in-memory limiter for server functions | `src/lib/auth.ts`, `src/lib/server/guard.ts` | Brute-force / credential stuffing and abuse of the seed endpoint. |
+| 6 | Session cookie hardening: `httpOnly`, `sameSite: lax`, `Secure` over HTTPS, 7-day expiry + rolling `updateAge` | `src/lib/auth.ts` | Session theft via XSS (`httpOnly`), CSRF (`sameSite`), and indefinite session lifetime. |
+| 7 | Image input validated both client-side (canvas downscale to **512px**) and server-side (data-URL/URL allow-list + 720 kB cap) | `src/lib/image.ts`, `src/lib/server/products.ts` | Stored-XSS via `data:text/html` / `javascript:` image payloads and memory-exhaustion uploads. |
+| 8 | Passwords hashed by Better Auth; no secrets committed (`*.local` gitignored; `.env.example` only) | `src/lib/auth.ts`, `.gitignore` | Plaintext credential storage and leaking the signing secret. |
+
+## Reproducible bundle
+
+`bun run generate.ts` writes every project file and zips them to `ukm-danau-toba-dashboard.zip` (dependency-free ZIP writer; excludes `node_modules`, `.env*`, build output and lockfiles). See `NOTES.md` for the full fix/security write-up.
+
 ## Known gotchas
 
 - **No persistent DB**: data resets on every redeploy/cold start. Re-run `/setup` after deploying to recreate the admin + sample products. To persist long-term, add a Better Auth adapter (Drizzle/Prisma/Kysely/Mongo) and a `DATABASE_URL`.
 - **`useParams()` requires `{ from: '/path/$param' }`** in this TanStack Router version — calling it with no arguments throws.
 - **`createServerFn` methods**: only `GET` and `POST` are valid; do not use `PATCH`/`DELETE`.
 - **Better Auth API is flat**: `auth.api.signUpEmail(...)` (not `auth.api.signUp.email`).
-- **biome check reports pre-existing scaffold lint issues** (styles.css import order/shorthand, `__root.tsx` `dangerouslySetInnerHTML` for the theme script, `slider.tsx` array-index key, `demo/` files). These are from the generated starter, not this feature. My feature files lint clean.
+- **`bun run lint` is clean** — the scaffold lint issues (styles.css import order, `__root.tsx` theme script, `slider.tsx` key) were fixed. Biome enforces **tabs, double quotes, semicolons**; run `bunx biome check --write .` after editing.
+- **`bun run build` does not typecheck** — run `bunx tsc --noEmit` for type errors. Both must pass before submitting.
 - **biome `intent install`** could not run non-interactively (requires interactive permission review); `intent list` completed. Re-run `npx @tanstack/intent@latest install` interactively if you want skill mappings written.
 - **Vercel serverless is stateless across instances**: in-memory data is per-instance; multi-instance production deploys will not share data. Add a database adapter for real production use.
 

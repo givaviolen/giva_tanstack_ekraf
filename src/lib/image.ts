@@ -17,14 +17,14 @@ export async function downscaleImage(
 	const dataUrl = await new Promise<string>((resolve, reject) => {
 		const reader = new FileReader();
 		reader.onload = () => resolve(String(reader.result));
-		reader.onerror = () => reject(new Error("Could not read that file"));
+		reader.onerror = () => reject(new Error("Berkas gambar tidak dapat dibaca"));
 		reader.readAsDataURL(file);
 	});
 
 	const image = await new Promise<HTMLImageElement>((resolve, reject) => {
 		const element = new Image();
 		element.onload = () => resolve(element);
-		element.onerror = () => reject(new Error("That image format is not supported"));
+		element.onerror = () => reject(new Error("Format gambar tersebut tidak didukung"));
 		element.src = dataUrl;
 	});
 

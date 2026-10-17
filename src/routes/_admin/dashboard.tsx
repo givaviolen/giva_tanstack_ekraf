@@ -6,6 +6,7 @@ import {
 	Package,
 	PackagePlus,
 	ShieldCheck,
+	Tags,
 	TrendingUp,
 	Users,
 } from "lucide-react";
@@ -15,21 +16,22 @@ import { ProductThumbnail } from "@/components/products/ProductThumbnail";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCurrency } from "@/lib/format";
+import { categoryBadgeClass } from "@/lib/catalog";
+import { formatRupiah } from "@/lib/format";
 import { getProducts } from "@/lib/server/products";
 import { getUsers } from "@/lib/server/users";
 
 export const Route = createFileRoute("/_admin/dashboard")({
 	head: () => ({
-		meta: [{ title: "Dashboard — Ekraf" }],
+		meta: [{ title: "Ringkasan — UKM Danau Toba" }],
 	}),
 	component: DashboardPage,
 });
 
 function stockBadge(stock: number) {
-	if (stock <= 0) return <Badge variant="destructive">Out of stock</Badge>;
-	if (stock <= 5) return <Badge variant="warning">Low · {stock}</Badge>;
-	return <Badge variant="secondary">{stock} in stock</Badge>;
+	if (stock <= 0) return <Badge variant="destructive">Stok habis</Badge>;
+	if (stock <= 5) return <Badge variant="warning">Stok rendah · {stock}</Badge>;
+	return <Badge variant="secondary">{stock} tersedia</Badge>;
 }
 
 function DashboardPage() {
@@ -53,35 +55,43 @@ function DashboardPage() {
 	const recent = products.slice(0, 5);
 	const lowStock = products.filter((product) => product.stock <= 5).length;
 
-	const firstName = viewer.name?.trim().split(" ")[0] || "there";
+	const byCategory = products.reduce<Record<string, number>>((acc, product) => {
+		acc[product.category] = (acc[product.category] ?? 0) + 1;
+		return acc;
+	}, {});
+	const topCategories = Object.entries(byCategory)
+		.sort(([, a], [, b]) => b - a)
+		.slice(0, 4);
+
+	const firstName = viewer.name?.trim().split(" ")[0] || "Admin";
 
 	return (
 		<div className="space-y-6">
-			{/* Welcome banner */}
-			<Card className="from-primary/10 via-primary/5 overflow-hidden border-primary/15 bg-linear-to-br to-transparent">
+			{/* Sapaan */}
+			<Card className="from-primary/10 via-primary/5 border-primary/15 overflow-hidden bg-linear-to-br to-transparent">
 				<CardContent className="flex flex-col gap-4 py-6 sm:flex-row sm:items-center sm:justify-between">
 					<div className="space-y-1">
-						<p className="kicker">Overview</p>
-						<h2 className="text-2xl font-bold tracking-tight">Welcome back, {firstName}</h2>
+						<p className="kicker">Ringkasan</p>
+						<h2 className="text-2xl font-bold tracking-tight">Selamat datang, {firstName}</h2>
 						<p className="text-muted-foreground text-sm">
-							Here&apos;s how your catalogue is doing today.
+							Berikut gambaran katalog produk UKM Danau Toba hari ini.
 						</p>
 					</div>
 					{isAdmin ? (
 						<Button asChild className="w-full sm:w-auto">
 							<Link to="/products">
 								<PackagePlus className="size-4" />
-								Manage products
+								Kelola produk
 							</Link>
 						</Button>
 					) : null}
 				</CardContent>
 			</Card>
 
-			{/* Stats */}
+			{/* Statistik */}
 			{productsQuery.isError ? (
 				<ErrorState
-					title="We couldn't load your products"
+					title="Produk tidak dapat dimuat"
 					description={(productsQuery.error as Error)?.message}
 					onRetry={() => void productsQuery.refetch()}
 				/>
@@ -89,11 +99,11 @@ function DashboardPage() {
 				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 					{productsQuery.isPending ? (
 						Array.from({ length: isAdmin ? 4 : 2 }).map((_, index) => (
-							<Card // biome-ignore lint/suspicious/noArrayIndexKey: pending skeletons
+							<Card // biome-ignore lint/suspicious/noArrayIndexKey: skeleton statis
 								key={`stat-skeleton-${index}`}
 							>
 								<CardContent className="py-2">
-									<LoadingState rows={1} label="Loading metrics" />
+									<LoadingState rows={1} label="Memuat metrik" />
 								</CardContent>
 							</Card>
 						))
@@ -101,31 +111,31 @@ function DashboardPage() {
 						<>
 							<StatCard
 								icon={Package}
-								label="Products"
+								label="Produk"
 								value={products.length}
-								hint="In your catalogue"
+								hint="Terdaftar di katalog"
 							/>
 							<StatCard
 								icon={Boxes}
-								label="Units in stock"
+								label="Total stok"
 								value={totalUnits}
-								hint={`${lowStock} need${lowStock === 1 ? "s" : ""} attention`}
+								hint={`${lowStock} perlu perhatian`}
 								tone={lowStock > 0 ? "warning" : "default"}
 							/>
 							{isAdmin ? (
 								<StatCard
-									icon={Users}
-									label="Users"
-									value={users.length}
-									hint="Registered accounts"
+									icon={Tags}
+									label="Kategori"
+									value={Object.keys(byCategory).length}
+									hint="Jenis produk UMKM"
 								/>
 							) : null}
 							{isAdmin ? (
 								<StatCard
-									icon={ShieldCheck}
-									label="Administrators"
-									value={adminCount}
-									hint="Full access members"
+									icon={Users}
+									label="Pengguna"
+									value={users.length}
+									hint={`${adminCount} administrator`}
 								/>
 							) : null}
 						</>
@@ -134,18 +144,18 @@ function DashboardPage() {
 			)}
 
 			<div className="grid gap-6 lg:grid-cols-3">
-				{/* Recent products */}
+				{/* Produk terbaru */}
 				<Card className="lg:col-span-2">
 					<CardHeader className="flex-row items-center justify-between gap-4 space-y-0">
 						<div className="space-y-1">
-							<CardTitle>Recent products</CardTitle>
-							<CardDescription>The latest additions to your catalogue.</CardDescription>
+							<CardTitle>Produk terbaru</CardTitle>
+							<CardDescription>Penambahan terakhir pada katalog Anda.</CardDescription>
 						</div>
 						<Link
 							to="/products"
-							className="text-primary inline-flex items-center gap-1.5 text-sm font-semibold no-underline hover:gap-2.5 transition-all"
+							className="text-primary inline-flex items-center gap-1.5 text-sm font-semibold no-underline transition-all hover:gap-2.5"
 						>
-							View all
+							Lihat semua
 							<ArrowRight className="size-4" />
 						</Link>
 					</CardHeader>
@@ -155,16 +165,16 @@ function DashboardPage() {
 						) : recent.length === 0 ? (
 							<EmptyState
 								icon={Package}
-								title="No products yet"
+								title="Belum ada produk"
 								description={
 									isAdmin
-										? "Add your first product to see it appear here."
-										: "There are no products in the catalogue yet."
+										? "Tambahkan produk pertama Anda agar muncul di sini."
+										: "Belum ada produk di katalog."
 								}
 								action={
 									isAdmin ? (
 										<Button asChild size="sm">
-											<Link to="/products">Add a product</Link>
+											<Link to="/products">Tambah produk</Link>
 										</Button>
 									) : null
 								}
@@ -179,12 +189,10 @@ function DashboardPage() {
 										<ProductThumbnail name={product.name} image={product.image} />
 										<div className="min-w-0 flex-1">
 											<p className="truncate text-sm font-semibold">{product.name}</p>
-											<p className="text-muted-foreground truncate text-xs">
-												{product.description}
-											</p>
+											<p className="text-muted-foreground truncate text-xs">{product.umkm}</p>
 										</div>
 										<div className="hidden shrink-0 text-right sm:block">
-											<p className="text-sm font-semibold">{formatCurrency(product.price)}</p>
+											<p className="text-sm font-semibold">{formatRupiah(product.price)}</p>
 											<div className="mt-1">{stockBadge(product.stock)}</div>
 										</div>
 									</li>
@@ -194,43 +202,71 @@ function DashboardPage() {
 					</CardContent>
 				</Card>
 
-				{/* Side column */}
+				{/* Kolom samping */}
 				<div className="space-y-6">
+					{topCategories.length > 0 ? (
+						<Card>
+							<CardHeader>
+								<CardTitle>Sebaran kategori</CardTitle>
+								<CardDescription>Jumlah produk per kategori.</CardDescription>
+							</CardHeader>
+							<CardContent className="space-y-2">
+								{topCategories.map(([category, count]) => (
+									<div key={category} className="flex items-center justify-between gap-2 text-sm">
+										<span
+											className={`rounded-full border px-2 py-0.5 text-xs ${categoryBadgeClass(category)}`}
+										>
+											{category}
+										</span>
+										<span className="text-muted-foreground tabular-nums">{count} produk</span>
+									</div>
+								))}
+							</CardContent>
+						</Card>
+					) : null}
+
 					<Card>
 						<CardHeader>
-							<CardTitle>Quick actions</CardTitle>
-							<CardDescription>Jump straight to the tasks you need.</CardDescription>
+							<CardTitle>Aksi cepat</CardTitle>
+							<CardDescription>Lompat langsung ke tugas yang Anda butuhkan.</CardDescription>
 						</CardHeader>
 						<CardContent className="grid gap-2">
 							<Button asChild variant="outline" className="justify-start">
 								<Link to="/products">
 									<Package className="size-4" />
-									Browse products
+									Lihat katalog produk
 								</Link>
 							</Button>
 							{isAdmin ? (
 								<Button asChild variant="outline" className="justify-start">
 									<Link to="/users">
 										<Users className="size-4" />
-										Manage users & roles
+										Kelola pengguna &amp; role
 									</Link>
 								</Button>
 							) : null}
+							<Button asChild variant="outline" className="justify-start">
+								<Link to="/produk">
+									<TrendingUp className="size-4" />
+									Buka direktori publik
+								</Link>
+							</Button>
 						</CardContent>
 					</Card>
 
 					<Card>
 						<CardHeader>
 							<span className="bg-primary/10 text-primary mb-1 grid size-9 place-items-center rounded-xl">
-								<TrendingUp className="size-4.5" />
+								<ShieldCheck className="size-4.5" />
 							</span>
-							<CardTitle className="text-base">In-memory workspace</CardTitle>
+							<CardTitle className="text-base">Penyimpanan sementara</CardTitle>
 							<CardDescription>
-								Data lives for the lifetime of the server process and resets on restart. Re-run{" "}
+								Data hanya bertahan selama proses server berjalan dan ter-reset saat restart.
+								Jalankan ulang{" "}
 								<Link to="/setup" className="text-primary font-medium hover:underline">
-									seed
+									seed data
 								</Link>{" "}
-								after a cold start.
+								setelah cold start.
 							</CardDescription>
 						</CardHeader>
 					</Card>

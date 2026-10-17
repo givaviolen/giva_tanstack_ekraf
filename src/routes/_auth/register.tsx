@@ -15,7 +15,7 @@ import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/_auth/register")({
 	head: () => ({
-		meta: [{ title: "Create account — Ekraf Dashboard" }],
+		meta: [{ title: "Daftar — UKM Danau Toba" }],
 	}),
 	component: RegisterPage,
 });
@@ -45,22 +45,22 @@ function RegisterPage() {
 
 	const validate = (): RegisterErrors => {
 		const next: RegisterErrors = {};
-		if (!name.trim()) next.name = "Name is required";
-		else if (name.trim().length < 2) next.name = "Name must be at least 2 characters";
+		if (!name.trim()) next.name = "Nama wajib diisi";
+		else if (name.trim().length < 2) next.name = "Nama minimal 2 karakter";
 
-		if (!email.trim()) next.email = "Email is required";
+		if (!email.trim()) next.email = "Email wajib diisi";
 		else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
-			next.email = "Enter a valid email address";
+			next.email = "Format email tidak valid";
 
-		if (!password) next.password = "Password is required";
-		else if (password.length < 8) next.password = "Password must be at least 8 characters";
+		if (!password) next.password = "Password wajib diisi";
+		else if (password.length < 8) next.password = "Password minimal 8 karakter";
 		else if (scorePassword(password) < 2)
-			next.password = "Add a number or symbol to make it stronger";
+			next.password = "Tambahkan angka atau simbol agar lebih kuat";
 
-		if (!confirm) next.confirm = "Please confirm your password";
-		else if (confirm !== password) next.confirm = "Passwords do not match";
+		if (!confirm) next.confirm = "Konfirmasi password wajib diisi";
+		else if (confirm !== password) next.confirm = "Password tidak sama";
 
-		if (!terms) next.terms = "Please accept the terms to continue";
+		if (!terms) next.terms = "Setujui ketentuan untuk melanjutkan";
 
 		return next;
 	};
@@ -81,12 +81,12 @@ function RegisterPage() {
 				name: name.trim(),
 			});
 			if (result.error) {
-				setError(result.error.message || "Could not create your account");
+				setError(result.error.message || "Tidak dapat membuat akun");
 				return;
 			}
 			await navigate({ to: "/dashboard" });
 		} catch {
-			setError("Something went wrong. Please try again.");
+			setError("Terjadi kesalahan. Silakan coba lagi.");
 		} finally {
 			setLoading(false);
 		}
@@ -95,13 +95,13 @@ function RegisterPage() {
 	return (
 		<AuthCard
 			icon={UserPlus}
-			title="Create your account"
-			description="Set up access in seconds. You can be promoted to admin later."
+			title="Buat akun baru"
+			description="Daftar dalam sekejap. Peran admin dapat diberikan kemudian."
 			footer={
 				<p className="text-muted-foreground text-sm">
-					Already have an account?{" "}
+					Sudah punya akun?{" "}
 					<Link to="/login" className="text-primary font-semibold hover:underline">
-						Sign in
+						Masuk
 					</Link>
 				</p>
 			}
@@ -113,7 +113,7 @@ function RegisterPage() {
 					</Alert>
 				) : null}
 
-				<Field label="Full name" htmlFor="name" required error={errors.name}>
+				<Field label="Nama lengkap" htmlFor="name" required error={errors.name}>
 					<div className="relative">
 						<User className="text-muted-foreground pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
 						<Input
@@ -124,7 +124,7 @@ function RegisterPage() {
 								setName(event.target.value);
 								clearError("name");
 							}}
-							placeholder="Ada Lovelace"
+							placeholder="Nama Anda"
 							className="pl-9"
 							aria-invalid={Boolean(errors.name)}
 						/>
@@ -143,7 +143,7 @@ function RegisterPage() {
 								setEmail(event.target.value);
 								clearError("email");
 							}}
-							placeholder="you@example.com"
+							placeholder="admin@example.com"
 							className="pl-9"
 							aria-invalid={Boolean(errors.email)}
 						/>
@@ -162,7 +162,7 @@ function RegisterPage() {
 								setPassword(event.target.value);
 								clearError("password");
 							}}
-							placeholder="At least 8 characters"
+							placeholder="Minimal 8 karakter"
 							className="pr-10 pl-9"
 							aria-invalid={Boolean(errors.password)}
 						/>
@@ -170,7 +170,7 @@ function RegisterPage() {
 							type="button"
 							onClick={() => setShowPassword((value) => !value)}
 							className="text-muted-foreground hover:text-foreground absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 transition-colors"
-							aria-label={showPassword ? "Hide password" : "Show password"}
+							aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
 						>
 							{showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
 						</button>
@@ -190,7 +190,7 @@ function RegisterPage() {
 								setConfirm(event.target.value);
 								clearError("confirm");
 							}}
-							placeholder="Re-enter your password"
+							placeholder="Masukkan ulang password"
 							className="pl-9"
 							aria-invalid={Boolean(errors.confirm)}
 						/>
@@ -210,7 +210,7 @@ function RegisterPage() {
 							aria-invalid={Boolean(errors.terms)}
 						/>
 						<Label htmlFor="terms" className="text-muted-foreground font-normal leading-snug">
-							I agree to the terms of service and privacy policy.
+							Saya menyetujui ketentuan layanan dan kebijakan privasi.
 						</Label>
 					</div>
 					{errors.terms ? (
@@ -222,7 +222,7 @@ function RegisterPage() {
 
 				<Button type="submit" size="lg" className="w-full" disabled={loading}>
 					{loading ? <Spinner /> : <UserPlus className="size-4.5" />}
-					{loading ? "Creating account…" : "Create account"}
+					{loading ? "Membuat akun…" : "Buat akun"}
 				</Button>
 			</form>
 		</AuthCard>

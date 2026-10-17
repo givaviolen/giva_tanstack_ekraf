@@ -29,6 +29,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { type RoleUser, UserRoleModal } from "@/components/users/UserRoleModal";
+import { toUserMessage } from "@/lib/errors";
 import { formatDate, initials } from "@/lib/format";
 import { deleteUser, getUsers } from "@/lib/server/users";
 
@@ -39,7 +40,7 @@ export const Route = createFileRoute("/_admin/users")({
 		}
 	},
 	head: () => ({
-		meta: [{ title: "Users — Ekraf" }],
+		meta: [{ title: "Pengguna — UKM Danau Toba" }],
 	}),
 	component: UsersPage,
 });
@@ -64,7 +65,7 @@ function RoleBadge({ role }: { role: UserRow["role"] }) {
 	return (
 		<Badge variant="secondary" className="gap-1">
 			<UserRound className="size-3" />
-			User
+			Pengguna
 		</Badge>
 	);
 }
@@ -106,7 +107,7 @@ function UsersPage() {
 			await refresh();
 			setPendingDelete(null);
 		} catch (error) {
-			setActionError(error instanceof Error ? error.message : "Could not delete the user");
+			setActionError(toUserMessage(error, "Pengguna tidak dapat dihapus."));
 		} finally {
 			setDeleting(false);
 		}
@@ -116,7 +117,7 @@ function UsersPage() {
 
 	const columns = columnHelper.columns([
 		columnHelper.accessor("name", {
-			header: "Account",
+			header: "Akun",
 			cell: (info) => {
 				const user = info.row.original;
 				const isSelf = user.id === viewer.id;
@@ -127,9 +128,9 @@ function UsersPage() {
 						</Avatar>
 						<div className="min-w-0">
 							<p className="flex items-center gap-2 truncate text-sm font-semibold">
-								<span className="truncate">{user.name?.trim() || "Unnamed user"}</span>
+								<span className="truncate">{user.name?.trim() || "Tanpa nama"}</span>
 								{isSelf ? (
-									<span className="text-muted-foreground shrink-0 text-xs font-normal">(you)</span>
+									<span className="text-muted-foreground shrink-0 text-xs font-normal">(Anda)</span>
 								) : null}
 							</p>
 							<p className="text-muted-foreground truncate text-xs">{user.email}</p>
@@ -146,20 +147,20 @@ function UsersPage() {
 			header: "Status",
 			cell: (info) =>
 				info.getValue() ? (
-					<Badge variant="success">Verified</Badge>
+					<Badge variant="success">Terverifikasi</Badge>
 				) : (
-					<Badge variant="outline">Unverified</Badge>
+					<Badge variant="outline">Belum verifikasi</Badge>
 				),
 		}),
 		columnHelper.accessor("createdAt", {
-			header: "Joined",
+			header: "Bergabung",
 			cell: (info) => (
 				<span className="text-muted-foreground text-xs">{formatDate(String(info.getValue()))}</span>
 			),
 		}),
 		columnHelper.display({
 			id: "actions",
-			header: "Actions",
+			header: "Aksi",
 			cell: (info) => {
 				const user = info.row.original;
 				const isSelf = user.id === viewer.id;
@@ -174,8 +175,8 @@ function UsersPage() {
 								setRoleUser(user);
 							}}
 							disabled={isSelf}
-							title={isSelf ? "You cannot change your own role" : "Change role"}
-							aria-label={`Change role for ${labelFor(user)}`}
+							title={isSelf ? "Anda tidak dapat mengubah role sendiri" : "Ubah role"}
+							aria-label={`Ubah role ${labelFor(user)}`}
 						>
 							<ShieldCheck className="size-4" />
 						</Button>
@@ -190,12 +191,12 @@ function UsersPage() {
 							disabled={isSelf || isLastAdmin}
 							title={
 								isSelf
-									? "You cannot delete your own account"
+									? "Anda tidak dapat menghapus akun sendiri"
 									: isLastAdmin
-										? "You cannot delete the last administrator"
-										: "Delete user"
+										? "Anda tidak dapat menghapus administrator terakhir"
+										: "Hapus pengguna"
 							}
-							aria-label={`Delete ${labelFor(user)}`}
+							aria-label={`Hapus ${labelFor(user)}`}
 						>
 							<Trash2 className="size-4" />
 						</Button>
@@ -226,15 +227,13 @@ function UsersPage() {
 				{/* Toolbar */}
 				<div className="flex flex-col gap-3 border-b px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
 					<div className="min-w-0">
-						<h2 className="text-base font-semibold tracking-tight">Accounts</h2>
+						<h2 className="text-base font-semibold tracking-tight">Akun</h2>
 						<p className="text-muted-foreground text-xs">
 							{usersQuery.isPending
-								? "Loading accounts…"
+								? "Memuat akun…"
 								: query
-									? `${filtered.length} of ${users.length} account${users.length === 1 ? "" : "s"}`
-									: `${users.length} account${users.length === 1 ? "" : "s"} · ${adminCount} admin${
-											adminCount === 1 ? "" : "s"
-										}`}
+									? `${filtered.length} dari ${users.length} akun`
+									: `${users.length} akun · ${adminCount} admin`}
 						</p>
 					</div>
 
@@ -243,22 +242,22 @@ function UsersPage() {
 						<Input
 							value={search}
 							onChange={(event) => setSearch(event.target.value)}
-							placeholder="Search by name or email…"
+							placeholder="Cari nama atau email…"
 							className="h-9 pl-9"
-							aria-label="Search users"
+							aria-label="Cari pengguna"
 						/>
 					</div>
 				</div>
 
-				{/* Content */}
+				{/* Konten */}
 				{usersQuery.isPending ? (
 					<div className="p-6">
-						<LoadingState rows={5} label="Loading accounts" />
+						<LoadingState rows={5} label="Memuat akun" />
 					</div>
 				) : usersQuery.isError ? (
 					<ErrorState
-						title="We couldn't load your accounts"
-						description={(usersQuery.error as Error)?.message}
+						title="Akun tidak dapat dimuat"
+						description={toUserMessage(usersQuery.error)}
 						onRetry={() => void usersQuery.refetch()}
 						className="m-6"
 					/>
@@ -266,17 +265,17 @@ function UsersPage() {
 					<div className="p-6">
 						<EmptyState
 							icon={Users}
-							title={hasUsers ? "No matching accounts" : "No accounts yet"}
+							title={hasUsers ? "Tidak ada akun yang cocok" : "Belum ada akun"}
 							description={
 								hasUsers
-									? "Try a different search term to find the account you're looking for."
-									: "Accounts appear here once people sign up."
+									? "Coba kata kunci lain untuk menemukan akun yang dicari."
+									: "Akun akan muncul di sini setelah pengguna mendaftar."
 							}
 						/>
 					</div>
 				) : (
 					<>
-						{/* Desktop table */}
+						{/* Tabel desktop */}
 						<div className="hidden md:block">
 							<Table>
 								<TableHeader>
@@ -315,8 +314,8 @@ function UsersPage() {
 							</Table>
 						</div>
 
-						{/* Mobile cards */}
-						<ul className="divide-y md:hidden">
+						{/* Kartu mobile */}
+						<ul className="divide-border divide-y md:hidden">
 							{filtered.map((user) => {
 								const isSelf = user.id === viewer.id;
 								const isLastAdmin = user.role === "admin" && adminCount <= 1;
@@ -328,10 +327,10 @@ function UsersPage() {
 											</Avatar>
 											<div className="min-w-0 flex-1">
 												<p className="truncate text-sm font-semibold">
-													{user.name?.trim() || "Unnamed user"}
+													{user.name?.trim() || "Tanpa nama"}
 													{isSelf ? (
 														<span className="text-muted-foreground ml-1 text-xs font-normal">
-															(you)
+															(Anda)
 														</span>
 													) : null}
 												</p>
@@ -341,7 +340,7 @@ function UsersPage() {
 										</div>
 										<div className="flex items-center justify-between gap-2">
 											<span className="text-muted-foreground text-xs">
-												Joined {formatDate(user.createdAt)}
+												Bergabung {formatDate(user.createdAt)}
 											</span>
 											<div className="flex items-center gap-1">
 												<Button
@@ -365,7 +364,7 @@ function UsersPage() {
 														setPendingDelete(user);
 													}}
 													disabled={isSelf || isLastAdmin}
-													aria-label={`Delete ${labelFor(user)}`}
+													aria-label={`Hapus ${labelFor(user)}`}
 												>
 													<Trash2 className="size-4" />
 												</Button>
@@ -394,16 +393,16 @@ function UsersPage() {
 				onOpenChange={(open) => {
 					if (!open) setPendingDelete(null);
 				}}
-				title="Delete this account?"
+				title="Hapus akun ini?"
 				description={
 					pendingDelete ? (
 						<>
-							<span className="font-medium">{labelFor(pendingDelete)}</span> will lose access
-							immediately and be removed from the workspace. This action cannot be undone.
+							<span className="font-medium">{labelFor(pendingDelete)}</span> akan langsung
+							kehilangan akses dan dihapus dari workspace. Tindakan ini tidak dapat dibatalkan.
 						</>
 					) : null
 				}
-				confirmLabel="Delete account"
+				confirmLabel="Hapus akun"
 				onConfirm={handleConfirmDelete}
 				loading={deleting}
 			/>

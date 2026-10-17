@@ -1,12 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { db, getUserRole, removeUserRole, setUserRole } from "@/lib/db";
+import { countAdmins, db, getUserRole, purgeUser, setUserRole } from "@/lib/db";
+import { AppError, notFound } from "@/lib/errors";
+import { safeValidator } from "@/lib/server/guard";
 import { requireAdmin } from "@/lib/session";
 
 export const userRoleSchema = z.object({
-	userId: z.string(),
-	role: z.enum(["admin", "user"]),
+	userId: z.string().min(1, "ID pengguna wajib diisi"),
+	role: z.enum(["admin", "user"], { message: "Role tidak dikenal" }),
 });
 
 export const getUsers = createServerFn({ method: "GET" }).handler(async () => {
@@ -22,41 +24,53 @@ export const getUsers = createServerFn({ method: "GET" }).handler(async () => {
 });
 
 export const updateUserRole = createServerFn({ method: "POST" })
-	.validator(userRoleSchema)
+	.validator(safeValidator(userRoleSchema, "Data role tidak valid"))
 	.handler(async ({ data }) => {
 		const { user } = await requireAdmin();
-		// An admin should never be able to demote themselves and lock the workspace out.
+
+		// Privilege-escalation guard 1: an admin must never be able to demote
+		// themselves and leave the workspace without an owner.
 		if (data.userId === user.id && data.role !== "admin") {
-			const err = new Error("You cannot change your own role") as Error & { status?: number };
-			err.status = 400;
-			throw err;
+			throw new AppError("Anda tidak dapat menurunkan role akun Anda sendiri.", 400);
 		}
+
+		const target = db.user.find((u) => u.id === data.userId);
+		if (!target) {
+			throw notFound("Pengguna tidak ditemukan.");
+		}
+
+		// Privilege-escalation guard 2: never leave the app with zero admins.
+		const currentRole = getUserRole(data.userId);
+		if (currentRole === "admin" && data.role !== "admin" && countAdmins() <= 1) {
+			throw new AppError("Tidak dapat menurunkan administrator terakhir.", 400);
+		}
+
 		setUserRole(data.userId, data.role);
 		return { ok: true };
 	});
 
 export const deleteUser = createServerFn({ method: "POST" })
-	.validator(z.object({ userId: z.string() }))
+	.validator(safeValidator(z.object({ userId: z.string().min(1, "ID pengguna wajib diisi") })))
 	.handler(async ({ data }) => {
 		const { user } = await requireAdmin();
+
+		// Privilege-escalation guard 1: no self-deletion.
 		if (data.userId === user.id) {
-			const err = new Error("You cannot delete your own account") as Error & { status?: number };
-			err.status = 400;
-			throw err;
+			throw new AppError("Anda tidak dapat menghapus akun Anda sendiri.", 400);
 		}
-		// Prevent removing the last administrator so the app never locks itself out.
-		const role = getUserRole(data.userId);
-		if (role === "admin") {
-			const adminCount = db.userRole.filter((r) => r.role === "admin").length;
-			if (adminCount <= 1) {
-				const err = new Error("Cannot delete the last administrator") as Error & {
-					status?: number;
-				};
-				err.status = 400;
-				throw err;
-			}
+
+		const target = db.user.find((u) => u.id === data.userId);
+		if (!target) {
+			throw notFound("Pengguna tidak ditemukan.");
 		}
-		db.user = db.user.filter((u) => u.id !== data.userId);
-		removeUserRole(data.userId);
+
+		// Privilege-escalation guard 2: keep at least one administrator.
+		if (getUserRole(data.userId) === "admin" && countAdmins() <= 1) {
+			throw new AppError("Tidak dapat menghapus administrator terakhir.", 400);
+		}
+
+		// Deleting the row alone would leave live sessions for the removed
+		// account, so purge the user together with their sessions/accounts.
+		purgeUser(data.userId);
 		return { ok: true };
 	});

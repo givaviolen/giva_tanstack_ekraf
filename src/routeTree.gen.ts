@@ -18,6 +18,7 @@ import { Route as AdminUsersRouteImport } from './routes/_admin/users'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
 import { Route as PublicIndexRouteImport } from './routes/_public/index'
+import { Route as PublicProdukRouteImport } from './routes/_public/produk'
 import { Route as PublicSetupRouteImport } from './routes/_public/setup'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -63,6 +64,11 @@ const PublicIndexRoute = PublicIndexRouteImport.update({
   path: '/',
   getParentRoute: () => PublicRoute,
 } as any)
+const PublicProdukRoute = PublicProdukRouteImport.update({
+  id: '/produk',
+  path: '/produk',
+  getParentRoute: () => PublicRoute,
+} as any)
 const PublicSetupRoute = PublicSetupRouteImport.update({
   id: '/setup',
   path: '/setup',
@@ -81,6 +87,7 @@ export interface FileRoutesByFullPath {
   '/users': typeof AdminUsersRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
+  '/produk': typeof PublicProdukRoute
   '/setup': typeof PublicSetupRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/users': typeof AdminUsersRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
+  '/produk': typeof PublicProdukRoute
   '/setup': typeof PublicSetupRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/_admin/users': typeof AdminUsersRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/register': typeof AuthRegisterRoute
+  '/_public/produk': typeof PublicProdukRoute
   '/_public/setup': typeof PublicSetupRoute
   '/_public/': typeof PublicIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -117,6 +126,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/login'
     | '/register'
+    | '/produk'
     | '/setup'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
@@ -127,6 +137,7 @@ export interface FileRouteTypes {
     | '/users'
     | '/login'
     | '/register'
+    | '/produk'
     | '/setup'
     | '/api/auth/$'
   id:
@@ -139,6 +150,7 @@ export interface FileRouteTypes {
     | '/_admin/users'
     | '/_auth/login'
     | '/_auth/register'
+    | '/_public/produk'
     | '/_public/setup'
     | '/_public/'
     | '/api/auth/$'
@@ -216,6 +228,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PublicIndexRouteImport
       parentRoute: typeof PublicRoute
     }
+    '/_public/produk': {
+      id: '/_public/produk'
+      path: '/produk'
+      fullPath: '/produk'
+      preLoaderRoute: typeof PublicProdukRouteImport
+      parentRoute: typeof PublicRoute
+    }
     '/_public/setup': {
       id: '/_public/setup'
       path: '/setup'
@@ -260,11 +279,13 @@ const AuthRouteChildren: AuthRouteChildren = {
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
 interface PublicRouteChildren {
+  PublicProdukRoute: typeof PublicProdukRoute
   PublicSetupRoute: typeof PublicSetupRoute
   PublicIndexRoute: typeof PublicIndexRoute
 }
 
 const PublicRouteChildren: PublicRouteChildren = {
+  PublicProdukRoute: PublicProdukRoute,
   PublicSetupRoute: PublicSetupRoute,
   PublicIndexRoute: PublicIndexRoute,
 }

@@ -1,11 +1,11 @@
 import { cn } from "cn";
 
 const LEVELS = [
-	{ label: "Too short", bar: "bg-muted-foreground/40", text: "text-muted-foreground" },
-	{ label: "Weak", bar: "bg-destructive", text: "text-destructive" },
-	{ label: "Fair", bar: "bg-warning", text: "text-warning-foreground" },
-	{ label: "Good", bar: "bg-primary", text: "text-primary" },
-	{ label: "Strong", bar: "bg-success", text: "text-success" },
+	{ label: "Terlalu pendek", bar: "bg-muted-foreground/40", text: "text-muted-foreground" },
+	{ label: "Lemah", bar: "bg-destructive", text: "text-destructive" },
+	{ label: "Cukup", bar: "bg-warning", text: "text-warning-foreground" },
+	{ label: "Baik", bar: "bg-primary", text: "text-primary" },
+	{ label: "Kuat", bar: "bg-success", text: "text-success" },
 ] as const;
 
 export function scorePassword(password: string) {
@@ -38,8 +38,8 @@ export function PasswordStrength({ password }: { password: string }) {
 			</div>
 			<p className={cn("text-xs font-medium", password ? level.text : "text-muted-foreground")}>
 				{password
-					? `Password strength: ${level.label}`
-					: "Use 8+ characters with a mix of letters, numbers & symbols"}
+					? `Kekuatan password: ${level.label}`
+					: "Gunakan 8+ karakter dengan campuran huruf, angka & simbol"}
 			</p>
 		</div>
 	);

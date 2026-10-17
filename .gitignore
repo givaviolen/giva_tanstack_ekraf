@@ -2,6 +2,9 @@ node_modules
 .DS_Store
 dist
 dist-ssr
+ukm-danau-toba-dashboard
+ukm-danau-toba-dashboard.zip
+.scratch-gen
 *.local
 .env
 .nitro
@@ -12,3 +15,5 @@ dist-ssr
 __unconfig*
 todos.json
 student-assignment.html
+build.log
+lint.log

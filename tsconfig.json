@@ -1,5 +1,13 @@
 {
 	"include": ["**/*.ts", "**/*.tsx"],
+	"exclude": [
+		"node_modules",
+		"ukm-danau-toba-dashboard",
+		".scratch-gen",
+		".output",
+		".nitro",
+		".tanstack"
+	],
 	"compilerOptions": {
 		"target": "ES2022",
 		"jsx": "react-jsx",
