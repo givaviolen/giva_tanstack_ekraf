@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 
 import { auth } from "@/lib/auth";
-import { SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD, db } from "@/lib/db";
+import { type Role, SEED_ADMIN_EMAIL, SEED_ADMIN_PASSWORD, db, getUserRole } from "@/lib/db";
 import { getCurrentSession } from "@/lib/session";
 
 /**
@@ -10,7 +10,11 @@ import { getCurrentSession } from "@/lib/session";
  * functions always execute on the server.
  */
 export const getServerSession = createServerFn({ method: "GET" }).handler(async () => {
-	return getCurrentSession();
+	const { session, user } = await getCurrentSession();
+	if (!session || !user) {
+		return { session: null, user: null, role: null as Role | null };
+	}
+	return { session, user, role: getUserRole(user.id) };
 });
 
 /**
@@ -70,6 +74,7 @@ export const seedAdmin = createServerFn({ method: "POST" }).handler(async () => 
 	].map((p) => ({
 		id: crypto.randomUUID(),
 		...p,
+		image: null,
 		createdAt: now,
 		updatedAt: now,
 	}));

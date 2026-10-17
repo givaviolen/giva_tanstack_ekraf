@@ -8,6 +8,8 @@ export interface Product {
 	description: string;
 	price: number;
 	stock: number;
+	/** An external image URL or a downscaled `data:` URL. `null` when unset. */
+	image: string | null;
 	createdAt: string;
 	updatedAt: string;
 }

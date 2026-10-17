@@ -1,8 +1,8 @@
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import { HeadContent, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import { HeadContent, Link, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import Footer from "../components/Footer";
-import Header from "../components/Header";
+
+import { Button } from "@/components/ui/button";
 
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 
@@ -19,38 +19,46 @@ const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getIte
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	head: () => ({
 		meta: [
+			{ charSet: "utf-8" },
+			{ name: "viewport", content: "width=device-width, initial-scale=1" },
+			{ title: "Ekraf Dashboard" },
 			{
-				charSet: "utf-8",
-			},
-			{
-				name: "viewport",
-				content: "width=device-width, initial-scale=1",
-			},
-			{
-				title: "TanStack Start Starter",
+				name: "description",
+				content:
+					"Secure product and user administration built with TanStack Start and Better Auth.",
 			},
 		],
-		links: [
-			{
-				rel: "stylesheet",
-				href: appCss,
-			},
-		],
+		links: [{ rel: "stylesheet", href: appCss }],
 	}),
 	shellComponent: RootDocument,
+	notFoundComponent: NotFound,
 });
+
+function NotFound() {
+	return (
+		<main className="flex min-h-dvh flex-col items-center justify-center gap-6 px-6 text-center">
+			<p className="kicker">404</p>
+			<h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Page not found</h1>
+			<p className="text-muted-foreground max-w-md text-sm">
+				The page you are looking for doesn&apos;t exist or has been moved.
+			</p>
+			<Button asChild>
+				<Link to="/">Back to home</Link>
+			</Button>
+		</main>
+	);
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
+				{/* biome-ignore lint/security/noDangerouslySetInnerHtml: static, build-time theme bootstrap script with no user input */}
 				<script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
 				<HeadContent />
 			</head>
-			<body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
-				<Header />
+			<body className="font-sans antialiased [overflow-wrap:anywhere]">
 				{children}
-				<Footer />
 				<TanStackDevtools
 					config={{
 						position: "bottom-right",
