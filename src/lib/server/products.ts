@@ -1,9 +1,13 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
+import { PRODUCT_CATEGORIES } from "@/lib/catalog";
 import {
-	PRODUCT_CATEGORIES, type Product,
-	deleteProductRow, insertProduct, listProducts, updateProductRow,
+	type Product,
+	deleteProductRow,
+	insertProduct,
+	listProducts,
+	updateProductRow,
 } from "@/lib/db";
 import { notFound } from "@/lib/errors";
 import { safeValidator } from "@/lib/server/guard";

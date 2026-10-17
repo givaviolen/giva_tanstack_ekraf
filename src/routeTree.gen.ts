@@ -14,6 +14,7 @@ import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as PublicRouteImport } from './routes/_public'
 import { Route as AdminDashboardRouteImport } from './routes/_admin/dashboard'
 import { Route as AdminProductsRouteImport } from './routes/_admin/products'
+import { Route as AdminProfileRouteImport } from './routes/_admin/profile'
 import { Route as AdminUsersRouteImport } from './routes/_admin/users'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
 import { Route as AuthRegisterRouteImport } from './routes/_auth/register'
@@ -42,6 +43,11 @@ const AdminDashboardRoute = AdminDashboardRouteImport.update({
 const AdminProductsRoute = AdminProductsRouteImport.update({
   id: '/products',
   path: '/products',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminProfileRoute = AdminProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminUsersRoute = AdminUsersRouteImport.update({
@@ -84,6 +90,7 @@ export interface FileRoutesByFullPath {
   '/': typeof PublicIndexRoute
   '/dashboard': typeof AdminDashboardRoute
   '/products': typeof AdminProductsRoute
+  '/profile': typeof AdminProfileRoute
   '/users': typeof AdminUsersRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
@@ -95,6 +102,7 @@ export interface FileRoutesByTo {
   '/': typeof PublicIndexRoute
   '/dashboard': typeof AdminDashboardRoute
   '/products': typeof AdminProductsRoute
+  '/profile': typeof AdminProfileRoute
   '/users': typeof AdminUsersRoute
   '/login': typeof AuthLoginRoute
   '/register': typeof AuthRegisterRoute
@@ -109,6 +117,7 @@ export interface FileRoutesById {
   '/_public': typeof PublicRouteWithChildren
   '/_admin/dashboard': typeof AdminDashboardRoute
   '/_admin/products': typeof AdminProductsRoute
+  '/_admin/profile': typeof AdminProfileRoute
   '/_admin/users': typeof AdminUsersRoute
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/register': typeof AuthRegisterRoute
@@ -123,6 +132,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/products'
+    | '/profile'
     | '/users'
     | '/login'
     | '/register'
@@ -134,6 +144,7 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/products'
+    | '/profile'
     | '/users'
     | '/login'
     | '/register'
@@ -147,6 +158,7 @@ export interface FileRouteTypes {
     | '/_public'
     | '/_admin/dashboard'
     | '/_admin/products'
+    | '/_admin/profile'
     | '/_admin/users'
     | '/_auth/login'
     | '/_auth/register'
@@ -198,6 +210,13 @@ declare module '@tanstack/react-router' {
       path: '/products'
       fullPath: '/products'
       preLoaderRoute: typeof AdminProductsRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/_admin/profile': {
+      id: '/_admin/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AdminProfileRouteImport
       parentRoute: typeof AdminRoute
     }
     '/_admin/users': {
@@ -255,12 +274,14 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminDashboardRoute: typeof AdminDashboardRoute
   AdminProductsRoute: typeof AdminProductsRoute
+  AdminProfileRoute: typeof AdminProfileRoute
   AdminUsersRoute: typeof AdminUsersRoute
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminDashboardRoute: AdminDashboardRoute,
   AdminProductsRoute: AdminProductsRoute,
+  AdminProfileRoute: AdminProfileRoute,
   AdminUsersRoute: AdminUsersRoute,
 }
 

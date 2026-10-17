@@ -8,6 +8,7 @@ import {
 	Package,
 	PanelLeftClose,
 	PanelLeftOpen,
+	UserRound,
 	Users,
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
@@ -56,6 +57,7 @@ const PAGE_META: Record<string, { title: string; subtitle: string }> = {
 	"/dashboard": { title: "Ringkasan", subtitle: "Gambaran singkat katalog UKM Anda" },
 	"/products": { title: "Produk", subtitle: "Kelola katalog produk UKM Danau Toba" },
 	"/users": { title: "Pengguna", subtitle: "Kelola akun dan role akses" },
+	"/profile": { title: "Profil", subtitle: "Kelola informasi dan keamanan akun Anda" },
 };
 
 function metaFor(pathname: string) {
@@ -343,6 +345,12 @@ export function DashboardShell({
 									</span>
 								</DropdownMenuLabel>
 								<DropdownMenuSeparator />
+								<DropdownMenuItem asChild>
+									<Link to="/profile" className="cursor-pointer">
+										<UserRound className="size-4" />
+										Profil
+									</Link>
+								</DropdownMenuItem>
 								<DropdownMenuItem asChild>
 									<Link to="/dashboard" className="cursor-pointer">
 										<LayoutDashboard className="size-4" />

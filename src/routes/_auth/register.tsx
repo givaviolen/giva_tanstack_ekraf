@@ -3,7 +3,7 @@ import { Eye, EyeOff, LockKeyhole, Mail, User, UserPlus } from "lucide-react";
 import { useState } from "react";
 
 import { AuthCard } from "@/components/auth/AuthCard";
-import { PasswordStrength, scorePassword } from "@/components/auth/PasswordStrength";
+import { PasswordStrength } from "@/components/auth/PasswordStrength";
 import { Field } from "@/components/common/Field";
 import { Spinner } from "@/components/common/Spinner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -44,6 +44,7 @@ function RegisterPage() {
 		setErrors((previous) => (previous[key] ? { ...previous, [key]: undefined } : previous));
 
 	const validate = (): RegisterErrors => {
+		
 		const next: RegisterErrors = {};
 		if (!name.trim()) next.name = "Nama wajib diisi";
 		else if (name.trim().length < 2) next.name = "Nama minimal 2 karakter";
@@ -52,10 +53,8 @@ function RegisterPage() {
 		else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()))
 			next.email = "Format email tidak valid";
 
-		if (!password) next.password = "Password wajib diisi";
-		else if (password.length < 8) next.password = "Password minimal 8 karakter";
-		else if (scorePassword(password) < 2)
-			next.password = "Tambahkan angka atau simbol agar lebih kuat";
+if (!password) next.password = "Password wajib diisi";
+else if (password.length < 8) next.password = "Password minimal 8 karakter";
 
 		if (!confirm) next.confirm = "Konfirmasi password wajib diisi";
 		else if (confirm !== password) next.confirm = "Password tidak sama";
