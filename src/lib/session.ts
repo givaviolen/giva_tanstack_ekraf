@@ -40,7 +40,7 @@ export async function requireAuth() {
  */
 export async function requireAdmin() {
 	const { user } = await requireAuth();
-	const role: Role = getUserRole(user.id);
+	const role: Role = await getUserRole(user.id);
 	if (role !== "admin") {
 		throw forbidden();
 	}

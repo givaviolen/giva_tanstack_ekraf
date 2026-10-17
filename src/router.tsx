@@ -13,6 +13,13 @@ export function getRouter() {
 		scrollRestoration: true,
 		defaultPreload: "intent",
 		defaultPreloadStaleTime: 0,
+
+		defaultErrorComponent: ({ error }) => (
+	<div style={{ padding: 24 }}>
+		<h2 style={{ fontWeight: 700 }}>Terjadi kesalahan</h2>
+		<p>{error instanceof Error ? error.message : "Silakan muat ulang halaman."}</p>
+	</div>
+),
 	});
 
 	setupRouterSsrQueryIntegration({ router, queryClient: context.queryClient });

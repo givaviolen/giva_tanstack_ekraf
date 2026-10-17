@@ -1,13 +1,20 @@
 import { betterAuth } from "better-auth";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 
-import { adapter } from "./db";
+import { pool } from "./db";
 
-const baseUrl = process.env.BETTER_AUTH_URL ?? "http://localhost:3000";
+const baseUrl =
+	process.env.BETTER_AUTH_URL ??
+	(process.env.VERCEL_PROJECT_PRODUCTION_URL
+		? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+		: "http://localhost:3000");
 const isHttps = baseUrl.startsWith("https://");
 
 export const auth = betterAuth({
-	database: adapter,
+	baseURL: baseUrl,
+	secret: process.env.BETTER_AUTH_SECRET,
+	trustedOrigins: [baseUrl, ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : [])],
+	database: pool,
 	emailAndPassword: {
 		enabled: true,
 		requireEmailVerification: false,
@@ -15,22 +22,10 @@ export const auth = betterAuth({
 		maxPasswordLength: 128,
 	},
 	session: {
-		expiresIn: 60 * 60 * 24 * 7, // 7 days
-		updateAge: 60 * 60 * 24, // 1 day
-		cookieCache: {
-			enabled: true,
-			maxAge: 60 * 15,
-		},
+		expiresIn: 60 * 60 * 24 * 7,
+		updateAge: 60 * 60 * 24,
+		cookieCache: { enabled: true, maxAge: 60 * 15 },
 	},
-	/**
-	 * Brute-force protection.
-	 *
-	 * The in-memory store is deliberate: this project ships without a database,
-	 * so throttling lives in process memory (per instance). Rules are tight on
-	 * the credential endpoints and relaxed everywhere else. A horizontally
-	 * scaled deployment would set `storage: "database"` or a Redis-backed
-	 * secondary storage here.
-	 */
 	rateLimit: {
 		enabled: true,
 		window: 60,
@@ -44,13 +39,8 @@ export const auth = betterAuth({
 		},
 	},
 	advanced: {
-		// Cookies are marked `Secure` whenever the app is served over HTTPS.
 		useSecureCookies: isHttps,
-		defaultCookieAttributes: {
-			httpOnly: true,
-			sameSite: "lax",
-			path: "/",
-		},
+		defaultCookieAttributes: { httpOnly: true, sameSite: "lax", path: "/" },
 	},
 	plugins: [tanstackStartCookies()],
 });

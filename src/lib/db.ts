@@ -1,163 +1,146 @@
-import { memoryAdapter } from "better-auth/adapters/memory";
+import { Pool } from "pg";
 
 import type { ProductCategory } from "./catalog";
 
 export type Role = "admin" | "user";
-
-// Re-exported for server-side callers. Client code should import from
-// `@/lib/catalog` directly so the Better Auth adapter stays out of the bundle.
 export { PRODUCT_CATEGORIES, type ProductCategory } from "./catalog";
 
 export interface Product {
 	id: string;
 	name: string;
-	/** Name of the UMKM / artisan that produces the item. */
 	umkm: string;
 	category: ProductCategory;
 	description: string;
-	/** Price in Indonesian Rupiah (whole rupiah). */
 	price: number;
 	stock: number;
-	/** An external image URL or a downscaled `data:` URL. `null` when unset. */
 	image: string | null;
 	createdAt: string;
 	updatedAt: string;
 }
 
-export interface UserRole {
-	userId: string;
-	role: Role;
+if (!process.env.DATABASE_URL) {
+	throw new Error("DATABASE_URL belum diatur di environment variables.");
 }
 
-/**
- * In-memory development database.
- *
- * better-auth owns the `user`, `session`, `account` and `verification` tables
- * (managed through `memoryAdapter`). This app adds `product` and `userRole`.
- *
- * NOTE: this is memory only. Data survives within a single running server
- * process (local dev, or one warmed Vercel serverless instance) but is reset
- * on every redeploy / cold start. There is no persistent database by design.
- * See AGENTS.md for how to seed an admin account and sample data.
- */
-const memoryDb = {
-	user: [] as Array<{
-		id: string;
-		email: string;
-		name: string | null;
-		image: string | null;
-		emailVerified: boolean;
-		emailVerifiedAt: Date | null;
-		createdAt: Date;
-		updatedAt: Date;
-		lastSignInAt: Date | null;
-	}>,
-	session: [] as unknown[],
-	account: [] as unknown[],
-	verification: [] as unknown[],
-	product: [] as Product[],
-	userRole: [] as UserRole[],
-};
-
-export const adapter = memoryAdapter(memoryDb);
-export const db = memoryDb;
+const g = globalThis as unknown as { __pgPool?: Pool };
+export const pool = g.__pgPool ?? new Pool({ connectionString: process.env.DATABASE_URL, max: 5 });
+g.__pgPool = pool;
 
 export const SEED_ADMIN_EMAIL = "admin@example.com";
 export const SEED_ADMIN_PASSWORD = "admin12345";
 
-/** Sample Lake Toba UMKM products created by the one-time `/setup` seed. */
 export const SEED_PRODUCTS: ReadonlyArray<
 	Pick<Product, "name" | "umkm" | "category" | "description" | "price" | "stock">
 > = [
-	{
-		name: "Ulos Ragidup",
-		umkm: "Tenun Sianipar",
-		category: "Kain Ulos",
-		description:
-			"Kain ulos tenun tangan motif ragidup, simbol restu dan panjang umur. Pewarna alam, dibuat oleh penenun di Samosir.",
-		price: 1_250_000,
-		stock: 8,
-	},
-	{
-		name: "Kopi Lintong Arabika 500g",
-		umkm: "Koperasi Tani Lintong",
-		category: "Kopi",
-		description:
-			"Arabika Lintong single origin, body tebal dengan sentuhan cokelat dan rempah. Digiling sesuai pesanan.",
-		price: 95_000,
-		stock: 120,
-	},
-	{
-		name: "Kacang Sihobuk Bawang 250g",
-		umkm: "UD Sihobuk Jaya",
-		category: "Kuliner",
-		description:
-			"Kacang tanah sangrai khas Sihobuk dengan bumbu bawang gurih. Camilan wajib oleh-oleh kawasan Danau Toba.",
-		price: 32_000,
-		stock: 200,
-	},
-	{
-		name: "Ukiran Kayu Patung Sigale-gale",
-		umkm: "Sanggar Ukir Tomok",
-		category: "Kerajinan",
-		description:
-			"Patung kayu ukir tangan bermotif gorga Batak, dikerjakan pengrajin Tomok dari kayu ingul.",
-		price: 675_000,
-		stock: 14,
-	},
-	{
-		name: "Tas Anyaman Pandan Samosir",
-		umkm: "Kelompok Wanita Samosir",
-		category: "Aksesori",
-		description:
-			"Tas anyaman pandan ramah lingkungan dengan aksen kain ulos, cocok untuk oleh-oleh dan penggunaan harian.",
-		price: 185_000,
-		stock: 3,
-	},
-	{
-		name: "Sambal Andaliman Botol 200g",
-		umkm: "Dapur Batak Nauli",
-		category: "Kuliner",
-		description:
-			"Sambal andaliman segar khas Batak, pedas menyengat dengan aroma jeruk purut. Tanpa pengawet.",
-		price: 45_000,
-		stock: 60,
-	},
+	{ name: "Ulos Ragidup", umkm: "Tenun Sianipar", category: "Kain Ulos", description: "Kain ulos tenun tangan motif ragidup, simbol restu dan panjang umur. Pewarna alam, dibuat oleh penenun di Samosir.", price: 1_250_000, stock: 8 },
+	{ name: "Kopi Lintong Arabika 500g", umkm: "Koperasi Tani Lintong", category: "Kopi", description: "Arabika Lintong single origin, body tebal dengan sentuhan cokelat dan rempah. Digiling sesuai pesanan.", price: 95_000, stock: 120 },
+	{ name: "Kacang Sihobuk Bawang 250g", umkm: "UD Sihobuk Jaya", category: "Kuliner", description: "Kacang tanah sangrai khas Sihobuk dengan bumbu bawang gurih. Camilan wajib oleh-oleh kawasan Danau Toba.", price: 32_000, stock: 200 },
+	{ name: "Ukiran Kayu Patung Sigale-gale", umkm: "Sanggar Ukir Tomok", category: "Kerajinan", description: "Patung kayu ukir tangan bermotif gorga Batak, dikerjakan pengrajin Tomok dari kayu ingul.", price: 675_000, stock: 14 },
+	{ name: "Tas Anyaman Pandan Samosir", umkm: "Kelompok Wanita Samosir", category: "Aksesori", description: "Tas anyaman pandan ramah lingkungan dengan aksen kain ulos, cocok untuk oleh-oleh dan penggunaan harian.", price: 185_000, stock: 3 },
+	{ name: "Sambal Andaliman Botol 200g", umkm: "Dapur Batak Nauli", category: "Kuliner", description: "Sambal andaliman segar khas Batak, pedas menyengat dengan aroma jeruk purut. Tanpa pengawet.", price: 45_000, stock: 60 },
 ];
 
-export function getUserRole(userId: string): Role {
-	return db.userRole.find((r) => r.userId === userId)?.role ?? "user";
+/* ---------- role ---------- */
+export async function getUserRole(userId: string): Promise<Role> {
+	const r = await pool.query<{ role: Role }>("select role from user_role where user_id = $1", [userId]);
+	return r.rows[0]?.role ?? "user";
 }
 
-export function setUserRole(userId: string, role: Role) {
-	const existing = db.userRole.find((r) => r.userId === userId);
-	if (existing) {
-		existing.role = role;
-	} else {
-		db.userRole.push({ userId, role });
-	}
+export async function setUserRole(userId: string, role: Role) {
+	await pool.query(
+		"insert into user_role (user_id, role) values ($1, $2) on conflict (user_id) do update set role = excluded.role",
+		[userId, role],
+	);
 }
 
-export function removeUserRole(userId: string) {
-	db.userRole = db.userRole.filter((r) => r.userId !== userId);
+export async function countAdmins(): Promise<number> {
+	const r = await pool.query<{ n: number }>("select count(*)::int as n from user_role where role = 'admin'");
+	return r.rows[0].n;
 }
 
-/**
- * Remove an account and everything tied to it.
- *
- * Deleting only the `user` row would leave live `session` rows behind: a stolen
- * or cached session cookie could still be resolved until it expired. Purging
- * sessions (and accounts/verifications) alongside the user guarantees the
- * deletion takes effect immediately.
- */
-export function purgeUser(userId: string) {
-	db.user = db.user.filter((u) => u.id !== userId);
-	db.account = db.account.filter((row) => (row as { userId?: string }).userId !== userId);
-	db.session = db.session.filter((row) => (row as { userId?: string }).userId !== userId);
-	db.verification = db.verification.filter((row) => (row as { userId?: string }).userId !== userId);
-	removeUserRole(userId);
+/* ---------- user ---------- */
+export async function findUserByEmail(email: string) {
+	const r = await pool.query<{ id: string }>('select id from "user" where email = $1', [email]);
+	return r.rows[0] ?? null;
 }
 
-export function countAdmins() {
-	return db.userRole.filter((r) => r.role === "admin").length;
+export async function userExists(userId: string) {
+	const r = await pool.query('select 1 from "user" where id = $1', [userId]);
+	return r.rowCount === 1;
+}
+
+export async function listUsers() {
+	const r = await pool.query<{
+		id: string; email: string; name: string | null; emailVerified: boolean; createdAt: Date; role: Role | null;
+	}>(
+		`select u.id, u.email, u.name, u."emailVerified", u."createdAt", r.role
+		 from "user" u left join user_role r on r.user_id = u.id
+		 order by u."createdAt" desc`,
+	);
+	return r.rows.map((u) => ({
+		id: u.id,
+		email: u.email,
+		name: u.name,
+		role: (u.role ?? "user") as Role,
+		emailVerified: !!u.emailVerified,
+		createdAt: new Date(u.createdAt).toISOString(),
+	}));
+}
+
+/** Hapus user beserta sesi & akunnya agar cookie lama langsung tidak berlaku. */
+export async function purgeUser(userId: string) {
+	await pool.query('delete from session where "userId" = $1', [userId]);
+	await pool.query('delete from account where "userId" = $1', [userId]);
+	await pool.query("delete from user_role where user_id = $1", [userId]);
+	await pool.query('delete from "user" where id = $1', [userId]);
+}
+
+/* ---------- product ---------- */
+interface ProductRow {
+	id: string; name: string; umkm: string; category: ProductCategory; description: string;
+	price: number; stock: number; image: string | null; created_at: Date; updated_at: Date;
+}
+
+const toProduct = (r: ProductRow): Product => ({
+	id: r.id, name: r.name, umkm: r.umkm, category: r.category, description: r.description,
+	price: r.price, stock: r.stock, image: r.image,
+	createdAt: new Date(r.created_at).toISOString(),
+	updatedAt: new Date(r.updated_at).toISOString(),
+});
+
+export type ProductFields = Pick<Product, "name" | "umkm" | "category" | "description" | "price" | "stock" | "image">;
+
+export async function listProducts(limit?: number): Promise<Product[]> {
+	const r = await pool.query<ProductRow>(
+		`select * from product order by created_at desc ${limit ? "limit " + Math.trunc(limit) : ""}`,
+	);
+	return r.rows.map(toProduct);
+}
+
+export async function countProducts(): Promise<number> {
+	const r = await pool.query<{ n: number }>("select count(*)::int as n from product");
+	return r.rows[0].n;
+}
+
+export async function insertProduct(p: ProductFields): Promise<Product> {
+	const r = await pool.query<ProductRow>(
+		`insert into product (id, name, umkm, category, description, price, stock, image)
+		 values ($1,$2,$3,$4,$5,$6,$7,$8) returning *`,
+		[crypto.randomUUID(), p.name, p.umkm, p.category, p.description, p.price, p.stock, p.image],
+	);
+	return toProduct(r.rows[0]);
+}
+
+export async function updateProductRow(id: string, p: ProductFields): Promise<Product | null> {
+	const r = await pool.query<ProductRow>(
+		`update product set name=$2, umkm=$3, category=$4, description=$5, price=$6, stock=$7, image=$8, updated_at=now()
+		 where id=$1 returning *`,
+		[id, p.name, p.umkm, p.category, p.description, p.price, p.stock, p.image],
+	);
+	return r.rows[0] ? toProduct(r.rows[0]) : null;
+}
+
+export async function deleteProductRow(id: string): Promise<boolean> {
+	const r = await pool.query("delete from product where id = $1", [id]);
+	return r.rowCount === 1;
 }

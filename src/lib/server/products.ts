@@ -1,7 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 
-import { PRODUCT_CATEGORIES, type Product, db } from "@/lib/db";
+import {
+	PRODUCT_CATEGORIES, type Product,
+	deleteProductRow, insertProduct, listProducts, updateProductRow,
+} from "@/lib/db";
 import { notFound } from "@/lib/errors";
 import { safeValidator } from "@/lib/server/guard";
 import { requireAdmin, requireAuth } from "@/lib/session";
@@ -93,85 +96,40 @@ function toPublicProduct(product: Product): PublicProduct {
 	};
 }
 
-function sortNewestFirst(a: Product, b: Product) {
-	return b.createdAt.localeCompare(a.createdAt);
-}
 
 // TanStack Start server functions support GET and POST only. Mutations use
 // POST and encode the intended action in the validator/body.
 export const getProducts = createServerFn({ method: "GET" }).handler(async () => {
 	await requireAuth();
-	return [...db.product].sort(sortNewestFirst);
+	return listProducts();
 });
 
-/**
- * Public, read-only catalogue used by the landing page and `/produk` directory.
- *
- * Intentionally unauthenticated: it exposes only data meant for public
- * promotion (no accounts, roles or sessions). Results are capped so the
- * endpoint cannot be used to dump an unbounded payload.
- */
 export const getPublicProducts = createServerFn({ method: "GET" })
-	.validator(
-		safeValidator(
-			z.object({ limit: z.coerce.number().int().min(1).max(60).optional() }).optional(),
-		),
-	)
+	.validator(safeValidator(z.object({ limit: z.coerce.number().int().min(1).max(60).optional() }).optional()))
 	.handler(async ({ data }): Promise<PublicProduct[]> => {
-		const products = [...db.product].sort(sortNewestFirst).map(toPublicProduct);
-		return typeof data?.limit === "number" ? products.slice(0, data.limit) : products;
+		const products = await listProducts(data?.limit ?? 60);
+		return products.map(toPublicProduct);
 	});
 
 export const createProduct = createServerFn({ method: "POST" })
 	.validator(safeValidator(productSchema, "Data produk tidak valid"))
 	.handler(async ({ data }) => {
 		await requireAdmin();
-		const now = new Date().toISOString();
-		const product: Product = {
-			id: crypto.randomUUID(),
-			name: data.name,
-			umkm: data.umkm,
-			category: data.category,
-			description: data.description,
-			price: data.price,
-			stock: data.stock,
-			image: data.image || null,
-			createdAt: now,
-			updatedAt: now,
-		};
-		db.product.push(product);
-		return product;
+		return insertProduct({ ...data, image: data.image || null });
 	});
 
 export const updateProduct = createServerFn({ method: "POST" })
 	.validator(
 		safeValidator(
-			z.object({
-				id: z.string().min(1, "ID produk wajib diisi"),
-				...productSchema.shape,
-			}),
+			z.object({ id: z.string().min(1, "ID produk wajib diisi"), ...productSchema.shape }),
 			"Data produk tidak valid",
 		),
 	)
 	.handler(async ({ data }) => {
 		await requireAdmin();
-		const index = db.product.findIndex((p) => p.id === data.id);
-		if (index === -1) {
-			throw notFound("Produk tidak ditemukan.");
-		}
-		const now = new Date().toISOString();
-		const updated: Product = {
-			...db.product[index],
-			name: data.name,
-			umkm: data.umkm,
-			category: data.category,
-			description: data.description,
-			price: data.price,
-			stock: data.stock,
-			image: data.image || null,
-			updatedAt: now,
-		};
-		db.product[index] = updated;
+		const { id, ...fields } = data;
+		const updated = await updateProductRow(id, { ...fields, image: fields.image || null });
+		if (!updated) throw notFound("Produk tidak ditemukan.");
 		return updated;
 	});
 
@@ -179,10 +137,6 @@ export const deleteProduct = createServerFn({ method: "POST" })
 	.validator(safeValidator(z.object({ id: z.string().min(1, "ID produk wajib diisi") })))
 	.handler(async ({ data }) => {
 		await requireAdmin();
-		const index = db.product.findIndex((p) => p.id === data.id);
-		if (index === -1) {
-			throw notFound("Produk tidak ditemukan.");
-		}
-		db.product.splice(index, 1);
+		if (!(await deleteProductRow(data.id))) throw notFound("Produk tidak ditemukan.");
 		return { ok: true };
 	});
